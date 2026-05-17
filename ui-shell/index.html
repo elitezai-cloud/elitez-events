@@ -775,6 +775,7 @@ Confidence: 0.94</pre>
 
     <script src="workflow.js"></script>
     <script>
+      (function () {
       const tabs = document.querySelectorAll('.tab');
       const contents = document.querySelectorAll('.stage-content');
       const railStages = document.querySelectorAll('[data-workflow-stage]');
@@ -951,6 +952,7 @@ Confidence: 0.94</pre>
 
       setActiveStage('dashboard', tabs, contents, railStages);
       syncAdminEmptyStates(document);
+      })();
     </script>
   </body>
 </html>
