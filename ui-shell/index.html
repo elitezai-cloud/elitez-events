@@ -934,6 +934,16 @@ Confidence: 0.94</pre>
         });
       });
 
+      const newProposalBtn = document.querySelector('.topbar .primary-btn');
+      if (newProposalBtn) {
+        newProposalBtn.addEventListener('click', () => {
+          setActiveStage('intake', tabs, contents, railStages);
+          syncAdminEmptyStates(document);
+          showStatus('New proposal started — complete Tender Intake to begin.');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
       railStages.forEach((stageNode) => {
         const stage = stageNode.dataset.workflowStage;
         if (!stage) return;
