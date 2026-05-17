@@ -946,11 +946,14 @@ Confidence: 0.94</pre>
                   <tr>
                     <td>LED Wall 12m</td>
                     <td>per day</td>
-                    <td>$4,850</td>
+                    <td class="price-cell"><span class="price-display">$4,850</span><input class="price-input" type="text" value="4850" style="display:none;width:72px" aria-label="Edit price" /></td>
                     <td>2026-03-02</td>
                     <td>
                       <span class="pill pill-stale">Stale</span> <span class="pill">tech</span>
                       <div class="action-row" style="margin-top: 6px">
+                        <button class="secondary-btn" data-pricing-edit>Edit Price</button>
+                        <button class="secondary-btn pricing-save" data-pricing-save style="display:none">Save</button>
+                        <button class="secondary-btn pricing-cancel" data-pricing-cancel style="display:none">Cancel</button>
                         <button class="secondary-btn" data-action="pricing-refresh">Refresh</button>
                         <button class="secondary-btn" data-action="pricing-mark-variance">Mark Variance</button>
                       </div>
@@ -959,11 +962,14 @@ Confidence: 0.94</pre>
                   <tr>
                     <td>Broadcast Crew</td>
                     <td>per event</td>
-                    <td>$7,200</td>
+                    <td class="price-cell"><span class="price-display">$7,200</span><input class="price-input" type="text" value="7200" style="display:none;width:72px" aria-label="Edit price" /></td>
                     <td>2026-05-12</td>
                     <td>
                       <span class="pill pill-ok">Healthy</span> <span class="pill">production</span>
                       <div class="action-row" style="margin-top: 6px">
+                        <button class="secondary-btn" data-pricing-edit>Edit Price</button>
+                        <button class="secondary-btn pricing-save" data-pricing-save style="display:none">Save</button>
+                        <button class="secondary-btn pricing-cancel" data-pricing-cancel style="display:none">Cancel</button>
                         <button class="secondary-btn" data-action="pricing-refresh">Refresh</button>
                       </div>
                     </td>
@@ -971,11 +977,14 @@ Confidence: 0.94</pre>
                   <tr>
                     <td>Registration App</td>
                     <td>license</td>
-                    <td>$1,900</td>
+                    <td class="price-cell"><span class="price-display">$1,900</span><input class="price-input" type="text" value="1900" style="display:none;width:72px" aria-label="Edit price" /></td>
                     <td>2026-01-19</td>
                     <td>
                       <span class="pill pill-alert">Variance</span> <span class="pill">software</span>
                       <div class="action-row" style="margin-top: 6px">
+                        <button class="secondary-btn" data-pricing-edit>Edit Price</button>
+                        <button class="secondary-btn pricing-save" data-pricing-save style="display:none">Save</button>
+                        <button class="secondary-btn pricing-cancel" data-pricing-cancel style="display:none">Cancel</button>
                         <button class="secondary-btn" data-action="pricing-resolve">Resolve</button>
                       </div>
                     </td>
@@ -1160,6 +1169,7 @@ Confidence: 0.94</pre>
         );
         actionButtons.forEach((button) => {
           if (button.matches('[data-costing-action], [data-costing-add], [data-costing-version]')) return;
+          if (button.hasAttribute('data-pricing-edit') || button.hasAttribute('data-pricing-save') || button.hasAttribute('data-pricing-cancel')) return;
           button.addEventListener('click', () => {
             const labels = button.textContent.trim();
             const key = button.dataset.action || labels.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -1167,6 +1177,61 @@ Confidence: 0.94</pre>
             const actionResult = actionOutcomeByKey[key];
             if (actionResult) { renderResult(actionResult); return; }
             showStatus(`${labels} executed. Check result panel for state.`);
+          });
+        });
+
+        /* Admin pricing catalog — inline Edit Price */
+        document.querySelectorAll('[data-pricing-edit]').forEach((editBtn) => {
+          const row = editBtn.closest('tr');
+          const priceCell = row.querySelector('.price-cell');
+          const display = priceCell.querySelector('.price-display');
+          const input = priceCell.querySelector('.price-input');
+          const saveBtn = row.querySelector('[data-pricing-save]');
+          const cancelBtn = row.querySelector('[data-pricing-cancel]');
+
+          const enterEdit = () => {
+            input.value = display.textContent.replace(/[^0-9.]/g, '');
+            display.style.display = 'none';
+            input.style.display = '';
+            editBtn.style.display = 'none';
+            saveBtn.style.display = '';
+            cancelBtn.style.display = '';
+            input.focus();
+          };
+
+          const exitEdit = (save) => {
+            if (save) {
+              const newVal = parseFloat(input.value.replace(/[^0-9.]/g, ''));
+              if (!isNaN(newVal)) {
+                display.textContent = '$' + newVal.toLocaleString();
+                showStatus(`Price updated to $${newVal.toLocaleString()}. Changes staged for governance review.`);
+              }
+            }
+            display.style.display = '';
+            input.style.display = 'none';
+            editBtn.style.display = '';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+          };
+
+          editBtn.addEventListener('click', enterEdit);
+          saveBtn.addEventListener('click', () => exitEdit(true));
+          cancelBtn.addEventListener('click', () => exitEdit(false));
+        });
+
+        /* Proposals table — View / Edit action-btn */
+        document.querySelectorAll('.proposals-table .action-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const label = btn.textContent.trim();
+            const row = btn.closest('tr');
+            const proposalName = row?.querySelector('.proposal-name')?.textContent.trim() || 'proposal';
+            if (label === 'Edit') {
+              showStatus(`Editing "${proposalName}" — proposal opened in draft editor.`);
+            } else if (label === 'View') {
+              showStatus(`Viewing "${proposalName}" — proposal opened in read-only mode.`);
+            } else {
+              showStatus(`${label} executed on "${proposalName}".`);
+            }
           });
         });
 
