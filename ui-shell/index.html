@@ -89,6 +89,14 @@
       <!-- ── Workspace ───────────────────────────────────────────── -->
       <main class="workspace">
 
+        <!-- Mobile-only search bar (top-nav search is hidden on small screens) -->
+        <div class="mobile-search-bar" aria-label="Mobile search">
+          <div class="nav-search-wrap" style="max-width:100%">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" class="nav-search mobile-search-input" placeholder="Search proposals, teams, or contacts…" aria-label="Search" />
+          </div>
+        </div>
+
         <!-- Hidden tab buttons — kept for JS compatibility, not shown -->
         <section class="stage-tabs" aria-label="Workflow tabs" aria-hidden="true">
           <button class="tab active" data-stage="dashboard">Dashboard</button>
@@ -174,30 +182,30 @@
             <div class="proposals-section">
               <div class="proposals-header">
                 <h2>Proposals</h2>
-                <div class="proposals-controls">
-                  <input type="search" class="table-search" placeholder="Search a proposal…" aria-label="Search proposals" />
-                  <select class="filter-select" aria-label="Filter by status">
-                    <option>All Statuses</option>
-                    <option>Approved</option>
-                    <option>In Review</option>
-                    <option>Draft</option>
-                    <option>Exported</option>
-                    <option>Blocked</option>
-                  </select>
-                  <select class="filter-select" aria-label="Filter by owner">
-                    <option>All Owners</option>
-                    <option>Alex Morgan</option>
-                    <option>Taylor Chen</option>
-                    <option>Rai Patel</option>
-                  </select>
-                  <select class="filter-select" aria-label="Filter by type">
-                    <option>All Types</option>
-                    <option>Enterprise</option>
-                    <option>Government</option>
-                    <option>SME</option>
-                  </select>
-                  <button class="primary-btn new-proposal-btn">+ New Proposal</button>
-                </div>
+                <button class="primary-btn new-proposal-btn">+ New Proposal</button>
+              </div>
+              <div class="proposals-filter-bar">
+                <input type="search" class="table-search" placeholder="Search a proposal…" aria-label="Search proposals" />
+                <select class="filter-select" aria-label="Filter by status">
+                  <option>All Statuses</option>
+                  <option>Approved</option>
+                  <option>In Review</option>
+                  <option>Draft</option>
+                  <option>Exported</option>
+                  <option>Blocked</option>
+                </select>
+                <select class="filter-select" aria-label="Filter by owner">
+                  <option>All Owners</option>
+                  <option>Alex Morgan</option>
+                  <option>Taylor Chen</option>
+                  <option>Rai Patel</option>
+                </select>
+                <select class="filter-select" aria-label="Filter by type">
+                  <option>All Types</option>
+                  <option>Enterprise</option>
+                  <option>Government</option>
+                  <option>SME</option>
+                </select>
               </div>
 
               <table class="proposals-table">
@@ -287,8 +295,12 @@
                 </tbody>
               </table>
               <div class="table-footer">
-                <span>Showing 1–7 of 12 proposals</span>
-                <span>Page 1 of 2</span>
+                <span class="table-footer-count">Showing 1–7 of 12 proposals</span>
+                <div class="page-controls">
+                  <button class="page-btn" id="page-prev" aria-label="Previous page" disabled>← Prev</button>
+                  <span class="page-info">Page <span id="page-current">1</span> of 2</span>
+                  <button class="page-btn" id="page-next" aria-label="Next page">Next →</button>
+                </div>
               </div>
             </div>
 
@@ -1176,6 +1188,69 @@ Confidence: 0.94</pre>
             window.scrollTo({ top: 0, behavior: 'smooth' });
           });
         }
+
+        /* Table search — live filter on proposal name */
+        const tableSearch = document.querySelector('.table-search');
+        if (tableSearch) {
+          tableSearch.addEventListener('input', () => {
+            const q = tableSearch.value.toLowerCase();
+            document.querySelectorAll('.proposals-table tbody tr').forEach((row) => {
+              const name = row.querySelector('.proposal-name')?.textContent.toLowerCase() || '';
+              row.style.display = name.includes(q) ? '' : 'none';
+            });
+          });
+        }
+
+        /* Filter selects — status / owner / type */
+        document.querySelectorAll('.filter-select').forEach((sel) => {
+          sel.addEventListener('change', () => {
+            const statusSel = document.querySelector('[aria-label="Filter by status"]');
+            const ownerSel  = document.querySelector('[aria-label="Filter by owner"]');
+            const typeSel   = document.querySelector('[aria-label="Filter by type"]');
+            const statusVal = statusSel?.value || 'All Statuses';
+            const ownerVal  = ownerSel?.value  || 'All Owners';
+            const typeLabel = typeSel?.value   || 'All Types';
+            document.querySelectorAll('.proposals-table tbody tr').forEach((row) => {
+              const rowStatus = row.querySelector('.status-pill')?.textContent.trim() || '';
+              const rowOwner  = row.querySelector('.prop-owner')?.textContent.trim()  || '';
+              const matchStatus = statusVal === 'All Statuses' || rowStatus === statusVal;
+              const matchOwner  = ownerVal  === 'All Owners'   || rowOwner  === ownerVal;
+              const matchType   = typeLabel === 'All Types';
+              row.style.display = (matchStatus && matchOwner && matchType) ? '' : 'none';
+            });
+          });
+        });
+
+        /* Pagination buttons */
+        let currentPage = 1;
+        const totalPages = 2;
+        const prevBtn = document.getElementById('page-prev');
+        const nextBtn = document.getElementById('page-next');
+        const pageLabel = document.getElementById('page-current');
+        const footerCount = document.querySelector('.table-footer-count');
+
+        const updatePagination = () => {
+          if (pageLabel) pageLabel.textContent = currentPage;
+          if (prevBtn) prevBtn.disabled = currentPage <= 1;
+          if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+          if (footerCount) {
+            footerCount.textContent = currentPage === 1
+              ? 'Showing 1–7 of 12 proposals'
+              : 'Showing 8–12 of 12 proposals';
+          }
+        };
+
+        if (prevBtn) {
+          prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) { currentPage--; updatePagination(); }
+          });
+        }
+        if (nextBtn) {
+          nextBtn.addEventListener('click', () => {
+            if (currentPage < totalPages) { currentPage++; updatePagination(); }
+          });
+        }
+        updatePagination();
 
         railStages.forEach((stageNode) => {
           const stage = stageNode.dataset.workflowStage;

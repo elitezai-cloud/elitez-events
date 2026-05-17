@@ -291,6 +291,10 @@ input, textarea, select { font: inherit; }
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  overflow: visible;
+}
+.proposals-section > .proposals-table,
+.proposals-section > .table-footer {
   overflow: hidden;
 }
 .proposals-header {
@@ -300,7 +304,8 @@ input, textarea, select { font: inherit; }
   gap: 10px;
   padding: 14px 18px 12px;
   border-bottom: 1px solid var(--line-soft);
-  flex-wrap: wrap;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--surface);
 }
 .proposals-header h2 {
   margin: 0;
@@ -308,11 +313,14 @@ input, textarea, select { font: inherit; }
   font-weight: 700;
   color: var(--text);
 }
-.proposals-controls {
+.proposals-filter-bar {
   display: flex;
   align-items: center;
   gap: 7px;
   flex-wrap: wrap;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface);
 }
 .table-search {
   height: 30px;
@@ -329,6 +337,7 @@ input, textarea, select { font: inherit; }
 .table-search:focus { border-color: var(--accent); background: var(--surface); }
 .filter-select {
   height: 30px;
+  min-width: 110px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 0 8px;
@@ -419,7 +428,38 @@ input, textarea, select { font: inherit; }
   border-top: 1px solid var(--line-soft);
   font-size: .78rem;
   color: var(--text-subtle);
+  flex-wrap: wrap;
+  gap: 8px;
 }
+.page-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.page-info { font-size: .78rem; color: var(--text-subtle); white-space: nowrap; }
+.page-btn {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--text-body);
+  font-size: .76rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+  white-space: nowrap;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--accent-mid); background: var(--accent-soft); }
+.page-btn:disabled { opacity: .4; cursor: default; }
+
+/* Mobile search bar */
+.mobile-search-bar {
+  display: none;
+  padding: 10px 0 14px;
+}
+.mobile-search-bar .nav-search-wrap { max-width: 100% !important; }
+.mobile-search-bar .nav-search { width: 100%; }
 
 /* ── Activity rail ─────────────────────────────────────────────── */
 .activity-rail {
@@ -819,5 +859,9 @@ input[type="text"]:focus, input[type="date"]:focus, textarea:focus {
   .governance-list li { flex-direction: column; align-items: flex-start; }
   .top-nav-center { display: none; }
   .nav-user-info { display: none; }
-  .proposals-header { flex-direction: column; align-items: flex-start; }
+  .mobile-search-bar { display: block; }
+  .proposals-filter-bar { flex-direction: column; align-items: stretch; }
+  .proposals-filter-bar .table-search,
+  .proposals-filter-bar .filter-select { width: 100%; }
+  .new-proposal-btn { white-space: nowrap; }
 }
