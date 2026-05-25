@@ -22,6 +22,45 @@ def _database_uri() -> str:
     return uri
 
 
+def _run_additive_migrations(app: Flask) -> None:
+    """Add columns introduced in 3746a99 to pre-existing prod tables idempotently."""
+    is_pg = app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql")
+
+    def _add(table: str, col: str) -> None:
+        stmt = (
+            f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col}"
+            if is_pg
+            else f"ALTER TABLE {table} ADD COLUMN {col}"
+        )
+        try:
+            db.session.execute(db.text(stmt))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    with app.app_context():
+        _add("proposals", "current_stage VARCHAR(32) NOT NULL DEFAULT 'tender_intake'")
+        _add("proposals", "requirements_approved_by VARCHAR(255)")
+        _add("proposals", "requirements_approved_at TIMESTAMP")
+        _add("proposals", "concept_approved_by VARCHAR(255)")
+        _add("proposals", "concept_approved_at TIMESTAMP")
+        _add("tender_documents", "extracted_text TEXT")
+        _add("tender_documents", "extracted_summary TEXT")
+        _add("requirements", "confidence FLOAT NOT NULL DEFAULT 0.0")
+        _add("requirements", "field_label VARCHAR(255)")
+        _add("requirements", "section_id VARCHAR(64)")
+        _add("requirements", "missing_field_severity VARCHAR(16) NOT NULL DEFAULT 'optional'")
+        _add("requirements", "source_refs TEXT NOT NULL DEFAULT '[]'")
+        _add("requirements", "is_edited BOOLEAN NOT NULL DEFAULT false")
+        _add("requirements", "is_deleted BOOLEAN NOT NULL DEFAULT false")
+        _add("concepts", "fit_score FLOAT NOT NULL DEFAULT 0.5")
+        _add("concepts", "tags TEXT NOT NULL DEFAULT '[]'")
+        _add("concepts", "rationale TEXT")
+        _add("concepts", "kb_references TEXT NOT NULL DEFAULT '[]'")
+        _add("concepts", "status VARCHAR(16) NOT NULL DEFAULT 'available'")
+        _add("concepts", "rejected_reason TEXT")
+
+
 def _seed_demo_user(app: Flask) -> None:
     from .models import User
     with app.app_context():
@@ -45,7 +84,8 @@ def create_app() -> Flask:
 
     with app.app_context():
         db.create_all()
-        _seed_demo_user(app)
+    _run_additive_migrations(app)
+    _seed_demo_user(app)
 
     @app.get("/health")
     def health():

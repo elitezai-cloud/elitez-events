@@ -1,8 +1,10 @@
+import io
 import json
 import logging
+import zipfile
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, request, send_file, session
 
 from ..models import (
     Approval,
@@ -189,22 +191,36 @@ def get_proposal(proposal_id: int):
 def upload_doc():
     if request.content_type and "multipart" in request.content_type:
         f = request.files.get("file")
-        proposal_id = request.form.get("proposal_id")
+        raw_pid = request.form.get("proposal_id")
+        if not raw_pid:
+            return jsonify({"error": "proposal_id required"}), 400
+        try:
+            proposal_id = int(raw_pid)
+        except (ValueError, TypeError):
+            return jsonify({"error": "proposal_id must be an integer"}), 400
+        Proposal.query.get_or_404(proposal_id)
         filename = f.filename if f else "tender.pdf"
         extracted_text = None
-        # Basic text extraction for .txt files only; PDF extraction is out of scope
         if f and filename.endswith(".txt"):
             extracted_text = f.read().decode("utf-8", errors="replace")
         doc = TenderDocument(
-            proposal_id=int(proposal_id),
+            proposal_id=proposal_id,
             filename=filename,
             parse_status="queued",
             extracted_text=extracted_text,
         )
     else:
-        data = request.get_json(force=True)
+        data = request.get_json(force=True) or {}
+        raw_pid = data.get("proposal_id")
+        if not raw_pid:
+            return jsonify({"error": "proposal_id required"}), 400
+        try:
+            proposal_id = int(raw_pid)
+        except (ValueError, TypeError):
+            return jsonify({"error": "proposal_id must be an integer"}), 400
+        Proposal.query.get_or_404(proposal_id)
         doc = TenderDocument(
-            proposal_id=data["proposal_id"],
+            proposal_id=proposal_id,
             filename=data.get("filename", "tender.pdf"),
             parse_status="queued",
         )
@@ -698,20 +714,35 @@ def create_export_draft(proposal_id: int):
 @api_bp.get("/proposals/<int:proposal_id>/exports/drafts")
 def list_export_drafts(proposal_id: int):
     Proposal.query.get_or_404(proposal_id)
+    rollup = _costing_rollup(proposal_id)
+    proposal_approvals = Approval.query.filter_by(proposal_id=proposal_id).all()
     drafts = (
         ExportDraft.query.filter_by(proposal_id=proposal_id)
         .order_by(ExportDraft.created_at.desc())
         .all()
     )
-    return jsonify([
-        {
-            "draft_id": d.id,
-            "parent_version": d.parent_version,
-            "artifact_type": d.artifact_type,
-            "state": d.state,
-        }
-        for d in drafts
-    ])
+    has_approval = len(proposal_approvals) > 0 and all(
+        a.decision == "approved" for a in proposal_approvals
+    )
+    return jsonify({
+        "gate_checks": [
+            {"label": "Costing complete", "pass": rollup["is_complete"]},
+            {"label": "Manager approval obtained", "pass": has_approval},
+        ],
+        "drafts": [
+            {
+                "id": d.id,
+                "parent_version": d.parent_version,
+                "artifact_type": d.artifact_type,
+                "state": d.state,
+            }
+            for d in drafts
+        ],
+        "approvals": [
+            {"approver": a.approver, "decision": a.decision}
+            for a in proposal_approvals
+        ],
+    })
 
 
 @api_bp.post("/exports/drafts/<int:draft_id>/promote")
@@ -723,6 +754,77 @@ def promote_export_draft(draft_id: int):
     db.session.commit()
     record_audit("export_draft_promoted", {"draft_id": draft.id, "export_id": export.id}, draft.proposal_id)
     return jsonify({"export_id": export.id, "status": export.status})
+
+
+@api_bp.get("/exports/packages/<int:package_id>/download")
+def download_export_package(package_id: int):
+    pkg = ExportPackage.query.get_or_404(package_id)
+    proposal = Proposal.query.get_or_404(pkg.proposal_id)
+    slides = (
+        StudioSlide.query.filter_by(proposal_id=proposal.id)
+        .order_by(StudioSlide.position)
+        .all()
+    )
+    items = CostingItem.query.filter_by(proposal_id=proposal.id).all()
+    concepts = Concept.query.filter_by(proposal_id=proposal.id).all()
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        manifest = {
+            "proposal_id": proposal.id,
+            "title": proposal.title,
+            "status": proposal.status,
+            "exported_at": datetime.utcnow().isoformat() + "Z",
+        }
+        zf.writestr("manifest.json", json.dumps(manifest, indent=2))
+
+        slides_data = [{"position": s.position, "title": s.title, "content": s.content} for s in slides]
+        zf.writestr("slides.json", json.dumps(slides_data, indent=2))
+
+        costing_data = [
+            {"item_name": i.item_name, "quantity": i.quantity, "unit_cost": i.unit_cost,
+             "line_total": round(i.quantity * i.unit_cost, 2)} for i in items
+        ]
+        zf.writestr("costing.json", json.dumps(costing_data, indent=2))
+
+        concepts_data = [
+            {"name": c.name, "status": c.status, "rationale": c.rationale, "fit_score": c.fit_score}
+            for c in concepts
+        ]
+        zf.writestr("concepts.json", json.dumps(concepts_data, indent=2))
+
+    buf.seek(0)
+    record_audit("export_downloaded", {"package_id": package_id}, proposal.id)
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=f"proposal-{proposal.id}-export.zip",
+        mimetype="application/zip",
+    )
+
+
+@api_bp.get("/proposals/<int:proposal_id>/exports/download.zip")
+def download_proposal_zip(proposal_id: int):
+    pkg = (
+        ExportPackage.query.filter_by(proposal_id=proposal_id)
+        .order_by(ExportPackage.created_at.desc())
+        .first()
+    )
+    if not pkg:
+        return jsonify({"error": "no_export_package"}), 404
+    return download_export_package(pkg.id)
+
+
+@api_bp.get("/proposals/<int:proposal_id>/exports/packages/latest/download")
+def download_latest_export(proposal_id: int):
+    pkg = (
+        ExportPackage.query.filter_by(proposal_id=proposal_id)
+        .order_by(ExportPackage.created_at.desc())
+        .first()
+    )
+    if not pkg:
+        return jsonify({"error": "no_export_package"}), 404
+    return download_export_package(pkg.id)
 
 
 @api_bp.post("/exports/packages")
