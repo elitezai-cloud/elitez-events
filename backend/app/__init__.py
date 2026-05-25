@@ -63,11 +63,19 @@ def _run_additive_migrations(app: Flask) -> None:
 
 def _seed_demo_user(app: Flask) -> None:
     from .models import User
-    with app.app_context():
-        if not User.query.filter_by(email="demo@elitez.local").first():
-            pw = bcrypt.generate_password_hash("demo2026").decode("utf-8")
-            db.session.add(User(email="demo@elitez.local", pw_hash=pw))
+    try:
+        with app.app_context():
+            existing = User.query.filter_by(email="demo@elitez.local").first()
+            import bcrypt as _bcrypt
+            pw = _bcrypt.hashpw(b"demo2026", _bcrypt.gensalt()).decode("utf-8")
+            if not existing:
+                db.session.add(User(email="demo@elitez.local", pw_hash=pw))
+            else:
+                existing.pw_hash = pw
             db.session.commit()
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error("Demo seed failed: %s", exc)
 
 
 def create_app() -> Flask:

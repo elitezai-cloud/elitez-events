@@ -44,15 +44,15 @@ def require_auth():
 
 @api_bp.post("/auth/login")
 def auth_login():
-    from flask import current_app
+    import bcrypt as _bcrypt
     data = request.get_json(force=True)
     email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
+    password = (data.get("password") or "").encode("utf-8")
     user = User.query.filter_by(email=email).first()
     if not user:
         return jsonify({"error": "invalid_credentials"}), 401
-    bcrypt = current_app.extensions.get("bcrypt")
-    if bcrypt is None or not bcrypt.check_password_hash(user.pw_hash, password):
+    pw_hash = user.pw_hash.encode("utf-8") if isinstance(user.pw_hash, str) else user.pw_hash
+    if not _bcrypt.checkpw(password, pw_hash):
         return jsonify({"error": "invalid_credentials"}), 401
     session["user_email"] = user.email
     return jsonify({"ok": True, "email": user.email})
