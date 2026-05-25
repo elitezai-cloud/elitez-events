@@ -1144,6 +1144,7 @@ const CostingPanel = (function () {
         <td>${_fmt(item.line_total)}</td>
         <td>${_statusPill(item.status)}</td>
         <td class="table-actions">
+          <button class="secondary-btn" onclick="CostingPanel.duplicateItem(${item.id})" title="Duplicate">⧉</button>
           <button class="secondary-btn" onclick="CostingPanel.deleteItem(${item.id})">Remove</button>
         </td>
       </tr>`).join('');
@@ -1192,6 +1193,15 @@ const CostingPanel = (function () {
       const banner = document.getElementById('costing-result-banner');
       if (banner) { banner.hidden = false; banner.innerHTML = `<p style="color:var(--danger)">Save failed: ${escapeHtml(err.message)}</p>`; }
     }
+  }
+
+  async function duplicateItem(itemId) {
+    try {
+      const newItem = await apiFetch(`/api/costing/items/${itemId}/duplicate`, { method: 'POST' });
+      _items.push(newItem);
+      _renderRows();
+      _loadSummary();
+    } catch (_) {}
   }
 
   async function deleteItem(itemId) {
@@ -1258,7 +1268,7 @@ const CostingPanel = (function () {
     });
   }
 
-  return { init, load, deleteItem };
+  return { init, load, deleteItem, duplicateItem };
 })();
 
 /* ══════════════════════════════════════════════════════════════
@@ -1353,6 +1363,57 @@ const StudioPanel = (function () {
         if (_selectedSlide) _regenerate(_selectedSlide);
       });
     }
+
+    // Add Slide button
+    const addSlideBtn = document.getElementById('studio-add-slide-btn');
+    if (addSlideBtn) {
+      addSlideBtn.addEventListener('click', async () => {
+        const title = prompt('Slide title:', 'New Slide');
+        if (!title) return;
+        try {
+          const slide = await apiFetch(`/api/proposals/${_pid()}/studio/slides`, {
+            method: 'POST',
+            body: JSON.stringify({ title }),
+          });
+          _slides.push(slide);
+          _renderSlides();
+        } catch (_) {}
+      });
+    }
+
+    // Reorder: move selected slide up/down
+    const moveUpBtn = document.getElementById('studio-move-up-btn');
+    const moveDownBtn = document.getElementById('studio-move-down-btn');
+    if (moveUpBtn) {
+      moveUpBtn.addEventListener('click', async () => {
+        if (!_selectedSlide) return;
+        const idx = _slides.findIndex(s => s.id === _selectedSlide.id);
+        if (idx <= 0) return;
+        const target = _slides[idx - 1];
+        try {
+          await apiFetch(`/api/studio/slides/${_selectedSlide.id}/reorder`, {
+            method: 'PATCH',
+            body: JSON.stringify({ new_position: target.position }),
+          });
+          await load();
+        } catch (_) {}
+      });
+    }
+    if (moveDownBtn) {
+      moveDownBtn.addEventListener('click', async () => {
+        if (!_selectedSlide) return;
+        const idx = _slides.findIndex(s => s.id === _selectedSlide.id);
+        if (idx < 0 || idx >= _slides.length - 1) return;
+        const target = _slides[idx + 1];
+        try {
+          await apiFetch(`/api/studio/slides/${_selectedSlide.id}/reorder`, {
+            method: 'PATCH',
+            body: JSON.stringify({ new_position: target.position }),
+          });
+          await load();
+        } catch (_) {}
+      });
+    }
   }
 
   return { init, load };
@@ -1400,6 +1461,7 @@ const ExportPanel = (function () {
     list.innerHTML = drafts.map(d => `<li>
       <span>${escapeHtml(d.parent_version || 'Draft')} — ${escapeHtml(d.artifact_type || 'Package')} — <span class="pill ${d.state === 'staged' ? 'pill-review' : 'pill-ok'}">${escapeHtml(d.state)}</span></span>
       ${d.state === 'staged' ? `<button class="secondary-btn" style="margin-left:8px" onclick="ExportPanel.promoteDraft(${d.id})">Promote</button>` : ''}
+      ${d.package_id ? `<a class="secondary-btn" style="margin-left:8px;text-decoration:none" href="/api/exports/packages/${d.package_id}/download">Download</a>` : ''}
     </li>`).join('');
   }
 
@@ -1568,14 +1630,57 @@ const AdminPanel = (function () {
     }
   }
 
+  async function _loadAssets() {
+    const tbody = document.getElementById('admin-assets-tbody');
+    if (!tbody) return;
+    try {
+      const assets = await apiFetch('/api/admin/assets');
+      if (!assets.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:20px">No template assets.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = assets.map(a => `
+        <tr>
+          <td>${escapeHtml(a.asset_type)}</td>
+          <td>${escapeHtml(a.title)}</td>
+          <td>
+            ${a.is_stale ? '<span class="pill pill-stale">Stale</span>' : ''}
+            ${a.is_duplicate_candidate ? '<span class="pill pill-alert">Duplicate?</span>' : ''}
+            ${!a.is_active ? '<span class="pill pill-review">Inactive</span>' : ''}
+          </td>
+          <td class="table-actions">
+            ${a.is_duplicate_candidate ? `<button class="secondary-btn" onclick="AdminPanel.clearDuplicate(${a.id})">Clear Duplicate</button>` : ''}
+            <button class="secondary-btn" onclick="AdminPanel.toggleAssetActive(${a.id}, ${a.is_active})">${a.is_active ? 'Deactivate' : 'Activate'}</button>
+          </td>
+        </tr>`).join('');
+    } catch (_) {}
+  }
+
+  async function clearDuplicate(assetId) {
+    try {
+      await apiFetch(`/api/admin/assets/${assetId}/duplicate-check`, { method: 'POST' });
+      _loadAssets();
+      _loadGovernanceSummary();
+    } catch (_) {}
+  }
+
+  async function toggleAssetActive(assetId, currentlyActive) {
+    try {
+      await apiFetch(`/api/admin/assets/${assetId}/toggle-active`, { method: 'POST' });
+      _loadAssets();
+      _loadGovernanceSummary();
+    } catch (_) {}
+  }
+
   function init() {
     if (_initialized) return;
     _initialized = true;
     _loadGovernanceSummary();
     _loadPricing();
+    _loadAssets();
   }
 
-  return { init, editPrice, cancelEdit, savePrice };
+  return { init, editPrice, cancelEdit, savePrice, clearDuplicate, toggleAssetActive };
 })();
 
 /* ── TenderIntakePanel ─────────────────────────────────────────── */

@@ -665,6 +665,8 @@
               </ul>
               <div class="action-row" style="margin-top: 10px" id="studio-slide-actions" hidden>
                 <button class="secondary-btn" id="studio-add-slide-btn">Add Slide</button>
+                <button class="secondary-btn" id="studio-move-up-btn" title="Move selected slide up">↑</button>
+                <button class="secondary-btn" id="studio-move-down-btn" title="Move selected slide down">↓</button>
               </div>
             </article>
 
@@ -947,12 +949,19 @@
 
           <!-- Tab panel: Templates -->
           <div class="admin-tab-panel" id="admin-panel-templates" role="tabpanel" hidden>
-            <article class="panel admin-surface" data-admin-surface data-admin-empty-toggle="li">
+            <article class="panel admin-surface">
               <div class="admin-headline-row">
-                <h3>Template Governance</h3>
-                <button class="secondary-btn" data-action="template-create">Create Template</button>
+                <h3>Template Assets</h3>
               </div>
-              <ul class="governance-list">
+              <table class="admin-table">
+                <thead><tr><th>Type</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admin-assets-tbody">
+                  <tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:20px">Loading assets…</td></tr>
+                </tbody>
+              </table>
+            </article>
+            <!-- legacy static kept below for reference, hidden -->
+            <div hidden><ul class="governance-list">
                 <li>
                   <div>
                     <strong>Premium Pitch v4</strong>
@@ -986,11 +995,7 @@
                     <button class="secondary-btn" data-action="template-review">Review</button>
                   </div>
                 </li>
-              </ul>
-              <div class="empty-state" hidden>
-                <p>No archived templates require action.</p>
-                <button class="secondary-btn">Open Template Registry</button>
-              </div>
+              </ul></div>
             </article>
           </div>
 

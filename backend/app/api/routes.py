@@ -785,6 +785,11 @@ def list_export_drafts(proposal_id: int):
                 "parent_version": d.parent_version,
                 "artifact_type": d.artifact_type,
                 "state": d.state,
+                "package_id": (
+                    ExportPackage.query.filter_by(proposal_id=proposal_id)
+                    .order_by(ExportPackage.created_at.desc())
+                    .first() or type("_", (), {"id": None})()
+                ).id if d.state == "archived" else None,
             }
             for d in drafts
         ],
@@ -990,6 +995,19 @@ def refresh_pricing_item(item_id: int):
 @api_bp.post("/admin/pricing/publish")
 def publish_pricing_catalog():
     return jsonify({"status": "published", "asset_count": PricingCatalogItem.query.count()})
+
+
+@api_bp.get("/admin/assets")
+def list_assets():
+    assets = TemplateAsset.query.order_by(TemplateAsset.created_at.desc()).all()
+    return jsonify([{
+        "id": a.id,
+        "asset_type": a.asset_type,
+        "title": a.title,
+        "is_duplicate_candidate": a.is_duplicate_candidate,
+        "is_stale": a.is_stale,
+        "is_active": a.is_active,
+    } for a in assets])
 
 
 @api_bp.post("/admin/assets")
