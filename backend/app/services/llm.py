@@ -12,7 +12,8 @@ def _get_model():
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY not set")
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel("gemini-3.1-pro-preview")
+    model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro")
+    return genai.GenerativeModel(model_name)
 
 
 def extract_tender_requirements(tender_text: str, filename: str) -> dict:
