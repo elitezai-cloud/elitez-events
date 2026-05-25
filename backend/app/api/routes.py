@@ -33,6 +33,11 @@ api_bp = Blueprint("api", __name__)
 _AUTH_EXEMPT = {"/api/auth/login", "/api/auth/me", "/api/auth/logout"}
 
 
+def _actor() -> str:
+    """Return the current session user email for audit attribution."""
+    return session.get("user_email", "anonymous")
+
+
 @api_bp.before_request
 def require_auth():
     if request.path not in _AUTH_EXEMPT:
@@ -181,7 +186,7 @@ def create_proposal():
     proposal = Proposal(title=data.get("title", "Untitled"), status="draft")
     db.session.add(proposal)
     db.session.commit()
-    record_audit("proposal_created", {"title": proposal.title}, proposal.id)
+    record_audit("proposal_created", {"title": proposal.title}, proposal.id, actor=_actor())
     return jsonify({
         "id": proposal.id,
         "title": proposal.title,
@@ -246,7 +251,7 @@ def upload_doc():
         )
     db.session.add(doc)
     db.session.commit()
-    record_audit("document_uploaded", {"document_id": doc.id}, doc.proposal_id)
+    record_audit("document_uploaded", {"document_id": doc.id}, doc.proposal_id, actor=_actor())
     return jsonify({"document_id": doc.id, "parse_status": doc.parse_status}), 201
 
 
@@ -308,7 +313,7 @@ def tender_extract(proposal_id: int):
         db.session.add(fallback_req)
         doc.parse_status = "complete"
         db.session.commit()
-        record_audit("tender_extracted_fallback", {"document_id": doc.id}, proposal_id)
+        record_audit("tender_extracted_fallback", {"document_id": doc.id}, proposal_id, actor=_actor())
         return _build_requirements_response(proposal_id)
 
     # Persist requirements
@@ -328,7 +333,7 @@ def tender_extract(proposal_id: int):
 
     doc.parse_status = "complete"
     db.session.commit()
-    record_audit("tender_extracted", {"document_id": doc.id}, proposal_id)
+    record_audit("tender_extracted", {"document_id": doc.id}, proposal_id, actor=_actor())
 
     # Return same shape as GET /api/proposals/:id/requirements
     return _build_requirements_response(proposal_id)
@@ -371,7 +376,7 @@ def edit_requirement(req_id: int):
     req.content = data.get("content", req.content)
     req.is_edited = True
     db.session.commit()
-    record_audit("requirement_edited", {"requirement_id": req.id}, req.proposal_id)
+    record_audit("requirement_edited", {"requirement_id": req.id}, req.proposal_id, actor=_actor())
     return jsonify(_serialize_requirement(req))
 
 
@@ -380,7 +385,7 @@ def delete_requirement(req_id: int):
     req = Requirement.query.get_or_404(req_id)
     req.is_deleted = True
     db.session.commit()
-    record_audit("requirement_deleted", {"requirement_id": req.id}, req.proposal_id)
+    record_audit("requirement_deleted", {"requirement_id": req.id}, req.proposal_id, actor=_actor())
     return jsonify({"deleted": True, "id": req.id})
 
 
@@ -389,7 +394,7 @@ def restore_requirement(req_id: int):
     req = Requirement.query.get_or_404(req_id)
     req.is_deleted = False
     db.session.commit()
-    record_audit("requirement_restored", {"requirement_id": req.id}, req.proposal_id)
+    record_audit("requirement_restored", {"requirement_id": req.id}, req.proposal_id, actor=_actor())
     return jsonify(_serialize_requirement(req))
 
 
@@ -411,7 +416,7 @@ def approve_requirements(proposal_id: int):
     proposal.requirements_approved_at = datetime.utcnow()
     proposal.current_stage = "concept_selection"
     db.session.commit()
-    record_audit("requirements_approved", {"proposal_id": proposal_id}, proposal_id)
+    record_audit("requirements_approved", {"proposal_id": proposal_id}, proposal_id, actor=_actor())
     return jsonify({
         "approved_by": proposal.requirements_approved_by,
         "approved_at": proposal.requirements_approved_at.isoformat() + "Z",
@@ -470,7 +475,7 @@ def generate_concepts():
         saved.append(concept)
 
     db.session.commit()
-    record_audit("concepts_generated", {"proposal_id": proposal_id, "count": len(saved)}, proposal_id)
+    record_audit("concepts_generated", {"proposal_id": proposal_id, "count": len(saved, actor=_actor())}, proposal_id)
 
     return jsonify({
         "concepts": [_serialize_concept(c) for c in saved]
@@ -486,7 +491,7 @@ def patch_concept(concept_id: int):
     if "rejected_reason" in data:
         concept.rejected_reason = data["rejected_reason"]
     db.session.commit()
-    record_audit("concept_patched", {"concept_id": concept.id}, concept.proposal_id)
+    record_audit("concept_patched", {"concept_id": concept.id}, concept.proposal_id, actor=_actor())
     return jsonify(_serialize_concept(concept))
 
 
@@ -505,7 +510,7 @@ def approve_concept(proposal_id: int):
     proposal.concept_approved_at = datetime.utcnow()
     proposal.current_stage = "costing_builder"
     db.session.commit()
-    record_audit("concept_approved", {"concept_id": concept_id}, proposal_id)
+    record_audit("concept_approved", {"concept_id": concept_id}, proposal_id, actor=_actor())
     return jsonify({
         "approved_by": proposal.concept_approved_by,
         "approved_at": proposal.concept_approved_at.isoformat() + "Z",
@@ -548,7 +553,7 @@ def upsert_costing_item():
     )
     db.session.add(item)
     db.session.commit()
-    record_audit("costing_item_added", {"item_id": item.id}, item.proposal_id)
+    record_audit("costing_item_added", {"item_id": item.id}, item.proposal_id, actor=_actor())
     return jsonify({"item_id": item.id}), 201
 
 
@@ -560,7 +565,7 @@ def patch_costing_item(item_id: int):
     item.unit_cost = data.get("unit_cost", item.unit_cost)
     item.status = data.get("status", item.status)
     db.session.commit()
-    record_audit("costing_item_updated", {"item_id": item.id}, item.proposal_id)
+    record_audit("costing_item_updated", {"item_id": item.id}, item.proposal_id, actor=_actor())
     return jsonify({
         "item_id": item.id,
         "quantity": item.quantity,
@@ -582,7 +587,7 @@ def duplicate_costing_item(item_id: int):
     )
     db.session.add(duplicate)
     db.session.commit()
-    record_audit("costing_item_duplicated", {"item_id": duplicate.id}, item.proposal_id)
+    record_audit("costing_item_duplicated", {"item_id": duplicate.id}, item.proposal_id, actor=_actor())
     return jsonify({"item_id": duplicate.id}), 201
 
 
@@ -592,7 +597,7 @@ def delete_costing_item(item_id: int):
     proposal_id = item.proposal_id
     db.session.delete(item)
     db.session.commit()
-    record_audit("costing_item_deleted", {"item_id": item_id}, proposal_id)
+    record_audit("costing_item_deleted", {"item_id": item_id}, proposal_id, actor=_actor())
     return jsonify({"deleted": True}), 200
 
 
@@ -614,7 +619,7 @@ def snapshot_costing_version(proposal_id: int):
     )
     db.session.add(version)
     db.session.commit()
-    record_audit("costing_version_created", {"version_id": version.id}, proposal_id)
+    record_audit("costing_version_created", {"version_id": version.id}, proposal_id, actor=_actor())
     return jsonify({
         "version_id": version.id,
         "version_label": version.version_label,
@@ -681,7 +686,7 @@ def create_studio_slide(proposal_id: int):
     )
     db.session.add(slide)
     db.session.commit()
-    record_audit("studio_slide_created", {"slide_id": slide.id}, proposal_id)
+    record_audit("studio_slide_created", {"slide_id": slide.id}, proposal_id, actor=_actor())
     return jsonify({"slide_id": slide.id, "position": slide.position}), 201
 
 
@@ -703,7 +708,7 @@ def reorder_studio_slide(slide_id: int):
     for i, s in enumerate(others, start=1):
         s.position = i
     db.session.commit()
-    record_audit("studio_slide_reordered", {"slide_id": slide.id}, slide.proposal_id)
+    record_audit("studio_slide_reordered", {"slide_id": slide.id}, slide.proposal_id, actor=_actor())
     return jsonify({"slide_id": slide.id, "position": slide.position})
 
 
@@ -728,7 +733,7 @@ def regenerate_studio_slide(slide_id: int):
         slide.content = new_content
         slide.status = "ready"
         db.session.commit()
-        record_audit("studio_slide_regenerated", {"slide_id": slide.id}, slide.proposal_id)
+        record_audit("studio_slide_regenerated", {"slide_id": slide.id}, slide.proposal_id, actor=_actor())
         return jsonify({"slide_id": slide.id, "status": slide.status, "content": slide.content})
     except Exception as exc:
         logger.error("LLM slide regeneration failed: %s — %s", type(exc).__name__, exc)
@@ -757,7 +762,7 @@ def create_export_draft(proposal_id: int):
     )
     db.session.add(draft)
     db.session.commit()
-    record_audit("export_draft_created", {"draft_id": draft.id}, proposal_id)
+    record_audit("export_draft_created", {"draft_id": draft.id}, proposal_id, actor=_actor())
     return jsonify({"draft_id": draft.id, "state": draft.state}), 201
 
 
@@ -807,7 +812,7 @@ def promote_export_draft(draft_id: int):
     export = ExportPackage(proposal_id=draft.proposal_id, status="ready")
     db.session.add(export)
     db.session.commit()
-    record_audit("export_draft_promoted", {"draft_id": draft.id, "export_id": export.id}, draft.proposal_id)
+    record_audit("export_draft_promoted", {"draft_id": draft.id, "export_id": export.id}, draft.proposal_id, actor=_actor())
     return jsonify({"export_id": export.id, "status": export.status})
 
 
@@ -849,7 +854,7 @@ def download_export_package(package_id: int):
         zf.writestr("concepts.json", json.dumps(concepts_data, indent=2))
 
     buf.seek(0)
-    record_audit("export_downloaded", {"package_id": package_id}, proposal.id)
+    record_audit("export_downloaded", {"package_id": package_id}, proposal.id, actor=_actor())
     return send_file(
         buf,
         as_attachment=True,
@@ -888,7 +893,7 @@ def create_export_package():
     export = ExportPackage(proposal_id=data["proposal_id"], status="ready")
     db.session.add(export)
     db.session.commit()
-    record_audit("export_created", {"export_id": export.id}, export.proposal_id)
+    record_audit("export_created", {"export_id": export.id}, export.proposal_id, actor=_actor())
     return jsonify({"export_id": export.id, "status": export.status}), 201
 
 
@@ -903,7 +908,7 @@ def create_approval():
     )
     db.session.add(approval)
     db.session.commit()
-    record_audit("approval_created", {"approval_id": approval.id}, approval.proposal_id)
+    record_audit("approval_created", {"approval_id": approval.id}, approval.proposal_id, actor=_actor())
     return jsonify({
         "approval_id": approval.id,
         "decision": approval.decision,
@@ -917,7 +922,7 @@ def update_approval(approval_id: int):
     data = request.get_json(force=True)
     approval.decision = data.get("decision", approval.decision)
     db.session.commit()
-    record_audit("approval_updated", {"approval_id": approval.id, "decision": approval.decision}, approval.proposal_id)
+    record_audit("approval_updated", {"approval_id": approval.id, "decision": approval.decision}, approval.proposal_id, actor=_actor())
     return jsonify({"approval_id": approval.id, "decision": approval.decision})
 
 
@@ -956,7 +961,7 @@ def patch_pricing_item(item_id: int):
     if "has_variance_warning" in data:
         item.has_variance_warning = bool(data["has_variance_warning"])
     db.session.commit()
-    record_audit("pricing_catalog_item_updated", {"pricing_item_id": item.id})
+    record_audit("pricing_catalog_item_updated", {"pricing_item_id": item.id}, actor=_actor())
     return jsonify({
         "id": item.id,
         "item_name": item.item_name,
@@ -979,7 +984,7 @@ def create_pricing_item():
     )
     db.session.add(item)
     db.session.commit()
-    record_audit("pricing_catalog_item_created", {"pricing_item_id": item.id})
+    record_audit("pricing_catalog_item_created", {"pricing_item_id": item.id}, actor=_actor())
     return jsonify({"pricing_item_id": item.id}), 201
 
 
@@ -988,7 +993,7 @@ def refresh_pricing_item(item_id: int):
     item = PricingCatalogItem.query.get_or_404(item_id)
     item.is_stale = False
     db.session.commit()
-    record_audit("pricing_catalog_item_refreshed", {"pricing_item_id": item.id})
+    record_audit("pricing_catalog_item_refreshed", {"pricing_item_id": item.id}, actor=_actor())
     return jsonify({"pricing_item_id": item.id, "is_stale": item.is_stale})
 
 
@@ -1016,7 +1021,7 @@ def create_asset():
     asset = TemplateAsset(asset_type=data["asset_type"], title=data["title"])
     db.session.add(asset)
     db.session.commit()
-    record_audit("asset_created", {"asset_id": asset.id})
+    record_audit("asset_created", {"asset_id": asset.id}, actor=_actor())
     return jsonify({"asset_id": asset.id}), 201
 
 
@@ -1027,7 +1032,7 @@ def patch_asset(asset_id: int):
     asset.is_duplicate_candidate = data.get("is_duplicate_candidate", asset.is_duplicate_candidate)
     asset.is_stale = data.get("is_stale", asset.is_stale)
     db.session.commit()
-    record_audit("asset_governance_updated", {"asset_id": asset.id})
+    record_audit("asset_governance_updated", {"asset_id": asset.id}, actor=_actor())
     return jsonify({
         "asset_id": asset.id,
         "is_duplicate_candidate": asset.is_duplicate_candidate,
@@ -1040,7 +1045,7 @@ def publish_template_asset(asset_id: int):
     asset = TemplateAsset.query.get_or_404(asset_id)
     asset.is_stale = False
     db.session.commit()
-    record_audit("asset_published", {"asset_id": asset.id})
+    record_audit("asset_published", {"asset_id": asset.id}, actor=_actor())
     return jsonify({"asset_id": asset.id, "published": True})
 
 
@@ -1049,7 +1054,7 @@ def duplicate_asset_check(asset_id: int):
     asset = TemplateAsset.query.get_or_404(asset_id)
     asset.is_duplicate_candidate = False
     db.session.commit()
-    record_audit("asset_duplicate_checked", {"asset_id": asset.id})
+    record_audit("asset_duplicate_checked", {"asset_id": asset.id}, actor=_actor())
     return jsonify({"asset_id": asset.id, "is_duplicate_candidate": asset.is_duplicate_candidate})
 
 
@@ -1059,7 +1064,7 @@ def toggle_asset_active(asset_id: int):
     action = request.get_json(silent=True) or {}
     asset.is_active = action.get("is_active", not asset.is_active)
     db.session.commit()
-    record_audit("asset_active_toggled", {"asset_id": asset.id, "is_active": asset.is_active})
+    record_audit("asset_active_toggled", {"asset_id": asset.id, "is_active": asset.is_active}, actor=_actor())
     return jsonify({"asset_id": asset.id, "is_active": asset.is_active})
 
 
@@ -1086,7 +1091,7 @@ def governance_summary():
 @api_bp.post("/proposals/<int:proposal_id>/generate")
 def generate_proposal(proposal_id: int):
     Proposal.query.get_or_404(proposal_id)
-    record_audit("proposal_generated", {"proposal_id": proposal_id}, proposal_id)
+    record_audit("proposal_generated", {"proposal_id": proposal_id}, proposal_id, actor=_actor())
     return jsonify({"proposal_id": proposal_id, "status": "generated"})
 
 
@@ -1095,7 +1100,7 @@ def retry_concept(concept_id: int):
     concept = Concept.query.get_or_404(concept_id)
     concept.summary = "Regenerated concept summary"
     db.session.commit()
-    record_audit("concept_regenerated", {"concept_id": concept.id}, concept.proposal_id)
+    record_audit("concept_regenerated", {"concept_id": concept.id}, concept.proposal_id, actor=_actor())
     return jsonify({"concept_id": concept.id, "summary": concept.summary})
 
 

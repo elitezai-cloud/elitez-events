@@ -53,6 +53,45 @@ function showFetchError(containerId, message, onRetry) {
   }
 }
 
+/* ── Success/info toast ─────────────────────────────────────────── */
+function showToast(message, type = 'success') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  const bg = type === 'error' ? '#dc2626' : type === 'warn' ? '#d97706' : '#16a34a';
+  toast.style.cssText = `background:${bg};color:#fff;padding:10px 16px;border-radius:8px;font-size:.88rem;box-shadow:0 2px 8px rgba(0,0,0,.2);max-width:320px`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+/* ── Stage-unlock state (tracks which stages are accessible) ──── */
+const _unlockedStages = new Set(['dashboard', 'intake']);
+
+function unlockStage(stageName) {
+  _unlockedStages.add(stageName);
+  // Update rail visuals
+  document.querySelectorAll('[data-workflow-stage]').forEach(item => {
+    const s = item.dataset.workflowStage;
+    item.setAttribute('aria-disabled', _unlockedStages.has(s) ? 'false' : 'true');
+    item.style.opacity = _unlockedStages.has(s) ? '' : '0.45';
+    item.style.pointerEvents = _unlockedStages.has(s) ? '' : 'none';
+  });
+}
+
+function unlockStageFromProposalState(proposalStage) {
+  const order = ['intake', 'requirements', 'concepts', 'costing', 'studio', 'export'];
+  const idx = order.indexOf(proposalStage);
+  order.forEach((s, i) => { if (i <= idx) unlockStage(s); });
+  unlockStage('dashboard');
+  unlockStage('admin');
+}
+
 function showSkeleton(containerId, rows = 3) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -198,13 +237,18 @@ const DashboardPanel = (function () {
     if (nextBtn) nextBtn.disabled = pg.page >= pg.pages;
   }
 
-  function openProposal(id) {
+  async function openProposal(id) {
     _currentProposalId = id;
     // Navigate to intake stage
     const stages = document.querySelectorAll('[data-workflow-stage]');
     const contents = document.querySelectorAll('[data-content]');
     const tabs = document.querySelectorAll('[data-stage]');
     setActiveStage('intake', tabs, contents, stages);
+    // Unlock stages based on backend proposal state
+    try {
+      const p = await apiFetch(`/api/proposals/${id}`);
+      unlockStageFromProposalState(p.current_stage);
+    } catch (_) { /* non-critical */ }
   }
 
   async function createProposal(title) {
@@ -776,6 +820,8 @@ const RequirementReviewPanel = (function () {
             _renderFields(document.getElementById('req-locked-fields-container'), true);
             const lockedLabel = document.getElementById('req-locked-label');
             if (lockedLabel) lockedLabel.textContent = `Requirements approved by ${result.approved_by} on ${new Date(result.approved_at).toLocaleDateString()}. Return for changes to unlock.`;
+            unlockStage('concepts');
+            showToast('Requirements approved — Concept stage unlocked');
           }).catch((err) => {
             approveBtn.disabled = false;
             if (err.body && err.body.error === 'missing_required_fields') {
@@ -1009,6 +1055,8 @@ const ConceptSelectionPanel = (function () {
           _renderCards(document.getElementById('concept-approved-cards'), true);
           const lockedLabel = document.getElementById('concept-locked-label');
           if (lockedLabel) lockedLabel.textContent = `Concept approved by ${result.approved_by} on ${new Date(result.approved_at).toLocaleDateString()}. Create a revision to replace.`;
+          unlockStage('costing');
+          showToast('Concept approved — Costing stage unlocked');
         }).catch(() => {
           approveBtn.disabled = false;
         });
