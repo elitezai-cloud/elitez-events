@@ -475,7 +475,12 @@ def generate_concepts():
         saved.append(concept)
 
     db.session.commit()
-    record_audit("concepts_generated", {"proposal_id": proposal_id, "count": len(saved, actor=_actor())}, proposal_id)
+    record_audit(
+        "concepts_generated",
+        {"proposal_id": proposal_id, "count": len(saved)},
+        proposal_id,
+        actor=_actor(),
+    )
 
     return jsonify({
         "concepts": [_serialize_concept(c) for c in saved]
