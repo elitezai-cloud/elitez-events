@@ -253,10 +253,29 @@ def tender_extract(proposal_id: int):
         result = extract_tender_requirements(doc.extracted_text, doc.filename)
         sections_data = result.get("sections", [])
     except Exception as exc:
-        logger.error("LLM tender extraction failed: %s", type(exc).__name__)
-        doc.parse_status = "error"
+        logger.error("LLM tender extraction failed: %s — %s", type(exc).__name__, exc)
+        # Always create at least one requirement so the workflow isn't stuck.
+        # Use extracted text if available; otherwise insert a placeholder.
+        placeholder_content = (
+            doc.extracted_text[:2000]
+            if doc.extracted_text
+            else f"[Text extraction unavailable for {doc.filename}. Please enter requirements manually.]"
+        )
+        fallback_req = Requirement(
+            proposal_id=proposal_id,
+            category="Tender Summary",
+            section_id="tender_summary",
+            field_label="Document content",
+            content=placeholder_content,
+            confidence=0.0,
+            missing_field_severity="optional",
+            source_refs=json.dumps([]),
+        )
+        db.session.add(fallback_req)
+        doc.parse_status = "complete"
         db.session.commit()
-        return jsonify({"error": "llm_parse_failed"}), 502
+        record_audit("tender_extracted_fallback", {"document_id": doc.id}, proposal_id)
+        return _build_requirements_response(proposal_id)
 
     # Persist requirements
     for section in sections_data:
@@ -392,13 +411,8 @@ def generate_concepts():
         from ..services.llm import generate_concepts as llm_generate
         raw_concepts = llm_generate(proposal.title, req_summary)
     except Exception as exc:
-        logger.error("LLM concept generation failed: %s", type(exc).__name__)
-        # Fallback: 3 placeholder concepts
-        raw_concepts = [
-            {"name": "Concept A", "fit_score": 0.5, "tags": [], "rationale": "LLM unavailable — placeholder concept", "kb_references": []},
-            {"name": "Concept B", "fit_score": 0.5, "tags": [], "rationale": "LLM unavailable — placeholder concept", "kb_references": []},
-            {"name": "Concept C", "fit_score": 0.5, "tags": [], "rationale": "LLM unavailable — placeholder concept", "kb_references": []},
-        ]
+        logger.error("LLM concept generation failed: %s — %s", type(exc).__name__, exc)
+        return jsonify({"error": "llm_concepts_failed", "detail": type(exc).__name__}), 502
 
     # If regenerating, mark existing concepts as archived (don't delete for history)
     if regenerate:
@@ -641,16 +655,18 @@ def create_studio_slide(proposal_id: int):
 def reorder_studio_slide(slide_id: int):
     slide = StudioSlide.query.get_or_404(slide_id)
     data = request.get_json(force=True)
-    new_pos = data.get("position", slide.position)
-    slide.position = new_pos
-    db.session.flush()
-    # Renumber all slides for this proposal to avoid collision
+    new_pos = int(data.get("position", slide.position))
+
+    # Load all slides ordered by current position, remove target, reinsert at new position
     all_slides = (
         StudioSlide.query.filter_by(proposal_id=slide.proposal_id)
         .order_by(StudioSlide.position)
         .all()
     )
-    for i, s in enumerate(all_slides, start=1):
+    others = [s for s in all_slides if s.id != slide.id]
+    new_pos = max(1, min(new_pos, len(all_slides)))
+    others.insert(new_pos - 1, slide)
+    for i, s in enumerate(others, start=1):
         s.position = i
     db.session.commit()
     record_audit("studio_slide_reordered", {"slide_id": slide.id}, slide.proposal_id)
@@ -681,8 +697,8 @@ def regenerate_studio_slide(slide_id: int):
         record_audit("studio_slide_regenerated", {"slide_id": slide.id}, slide.proposal_id)
         return jsonify({"slide_id": slide.id, "status": slide.status, "content": slide.content})
     except Exception as exc:
-        logger.error("LLM slide regeneration failed: %s", type(exc).__name__)
-        return jsonify({"slide_id": slide.id, "status": "error", "content": None}), 502
+        logger.error("LLM slide regeneration failed: %s — %s", type(exc).__name__, exc)
+        return jsonify({"slide_id": slide.id, "status": "error", "content": None, "detail": type(exc).__name__}), 502
 
 
 # ── Export & Approvals ──────────────────────────────────────────────────────

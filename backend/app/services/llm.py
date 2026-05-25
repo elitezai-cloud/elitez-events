@@ -8,11 +8,19 @@ logger = logging.getLogger(__name__)
 def _get_model():
     import google.generativeai as genai
 
-    api_key = os.environ.get("GEMINI_API_KEY")
+    # Accept both naming conventions: GEMINI_API_KEY (code default) and
+    # MODEL_API_KEY (env.example / Railway convention)
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("MODEL_API_KEY")
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY not set")
+        logger.error("Neither GEMINI_API_KEY nor MODEL_API_KEY is set — LLM calls will fail")
+        raise RuntimeError("No LLM API key configured (set GEMINI_API_KEY or MODEL_API_KEY)")
     genai.configure(api_key=api_key)
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro")
+    model_name = (
+        os.environ.get("GEMINI_MODEL")
+        or os.environ.get("MODEL_NAME")
+        or "gemini-1.5-flash"
+    )
+    logger.debug("Using Gemini model: %s", model_name)
     return genai.GenerativeModel(model_name)
 
 

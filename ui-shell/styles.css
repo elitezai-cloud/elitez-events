@@ -1,3 +1,6 @@
+/* Ensure [hidden] always wins over author display rules (e.g. display:flex overlays) */
+[hidden] { display: none !important; }
+
 /* ── Design tokens — Apple-glass system (TRD §1.1) ─────────────── */
 :root {
   /* Fonts */
@@ -1317,6 +1320,8 @@ input[type="text"]:focus, input[type="date"]:focus, textarea:focus {
   box-shadow: var(--shadow-md); z-index: 201; display: flex; flex-direction: column;
   animation: drawer-in 200ms cubic-bezier(.25,.8,.25,1);
 }
+/* display:flex above overrides UA [hidden]{display:none} — must be explicit */
+.source-drawer-panel[hidden] { display: none !important; pointer-events: none; }
 @keyframes drawer-in { from{transform:translateX(100%)} to{transform:translateX(0)} }
 .source-drawer-header {
   display: flex; justify-content: space-between; align-items: center;
