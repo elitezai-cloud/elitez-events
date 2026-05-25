@@ -312,6 +312,8 @@ const SourceDrawer = (function () {
             <blockquote class="source">"${escapeHtml(ref.excerpt)}"</blockquote>
           </div>`;
         }).join('');
+    const backdrop = document.getElementById('source-drawer-backdrop');
+    if (backdrop) { backdrop.hidden = false; backdrop.removeAttribute('aria-hidden'); }
     drawer.hidden = false;
     drawer.setAttribute('aria-modal', 'true');
     const closeBtn = document.getElementById('source-drawer-close');
@@ -322,6 +324,8 @@ const SourceDrawer = (function () {
   function close() {
     const drawer = document.getElementById('source-drawer');
     if (drawer) { drawer.hidden = true; drawer.removeAttribute('aria-modal'); }
+    const backdrop = document.getElementById('source-drawer-backdrop');
+    if (backdrop) { backdrop.hidden = true; backdrop.setAttribute('aria-hidden', 'true'); }
     releaseFocusTrap();
     if (_returnFocus) { _returnFocus.focus(); _returnFocus = null; }
   }
