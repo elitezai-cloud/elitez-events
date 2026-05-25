@@ -288,11 +288,9 @@
 
             <article class="panel">
               <h3>Tender Documents</h3>
-              <div class="dropzone">Drop files here or browse</div>
-              <ul class="queue-list">
-                <li><strong>Tender_Scope_v4.pdf</strong><span class="chip ok">Parsed</span></li>
-                <li><strong>FloorPlan_Arena.png</strong><span class="chip review">Queued</span></li>
-                <li><strong>Client_Budget_Email.msg</strong><span class="chip ok">Parsed</span></li>
+              <div class="dropzone" id="intake-dropzone">Drop files here or <label style="cursor:pointer;text-decoration:underline">browse<input type="file" id="intake-file-input" style="display:none" multiple accept=".pdf,.txt,.docx,.png,.jpg,.xlsx,.msg"></label></div>
+              <ul class="queue-list" id="intake-queue-list">
+                <li class="note">No documents uploaded yet.</li>
               </ul>
             </article>
           </div>
@@ -300,11 +298,10 @@
           <div class="panel-grid">
             <article class="panel">
               <h3>Parsing Status</h3>
-              <div class="loading">Extracting requirements and budget signals…</div>
-              <div class="progress">
-                <div class="progress-fill" style="width: 72%"></div>
+              <div id="intake-parse-status-msg" class="note">Upload documents to begin.</div>
+              <div class="progress" id="intake-progress-bar" style="display:none">
+                <div class="progress-fill" id="intake-progress-fill" style="width:0%"></div>
               </div>
-              <p class="note">72% complete · last update 2m ago</p>
             </article>
 
             <article class="panel">
@@ -334,8 +331,8 @@
           <div class="panel-grid" style="margin-top:14px">
             <article class="panel" style="grid-column:1/-1">
               <div class="action-row" style="margin-top:0;margin-bottom:14px;justify-content:flex-end">
-                <button class="secondary-btn">Save Draft</button>
-                <button class="button-primary">Save and Start</button>
+                <button class="secondary-btn" id="intake-save-draft">Save Draft</button>
+                <button class="button-primary" id="intake-save-start">Save and Start</button>
               </div>
             </article>
           </div>

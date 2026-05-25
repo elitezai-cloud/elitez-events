@@ -250,6 +250,20 @@ def upload_doc():
     return jsonify({"document_id": doc.id, "parse_status": doc.parse_status}), 201
 
 
+@api_bp.get("/proposals/<int:proposal_id>/documents")
+def list_documents(proposal_id: int):
+    Proposal.query.get_or_404(proposal_id)
+    docs = TenderDocument.query.filter_by(proposal_id=proposal_id).order_by(
+        TenderDocument.created_at.desc()
+    ).all()
+    return jsonify([{
+        "id": d.id,
+        "filename": d.filename,
+        "parse_status": d.parse_status,
+        "created_at": d.created_at.isoformat() + "Z",
+    } for d in docs])
+
+
 @api_bp.get("/parse-status/<int:document_id>")
 def parse_status(document_id: int):
     doc = TenderDocument.query.get_or_404(document_id)

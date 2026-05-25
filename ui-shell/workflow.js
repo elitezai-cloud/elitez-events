@@ -1578,6 +1578,149 @@ const AdminPanel = (function () {
   return { init, editPrice, cancelEdit, savePrice };
 })();
 
+/* ── TenderIntakePanel ─────────────────────────────────────────── */
+const TenderIntakePanel = (function () {
+  let _proposalId = null;
+  let _pollTimers = {};
+
+  const _statusChip = (s) => {
+    if (s === 'complete') return '<span class="chip ok">Parsed</span>';
+    if (s === 'failed')   return '<span class="chip error">Failed</span>';
+    if (s === 'parsing')  return '<span class="chip review">Parsing…</span>';
+    return '<span class="chip review">Queued</span>';
+  };
+
+  async function _loadDocs() {
+    if (!_proposalId) return;
+    const list = document.getElementById('intake-queue-list');
+    if (!list) return;
+    try {
+      const docs = await apiFetch(`/api/proposals/${_proposalId}/documents`);
+      if (!docs.length) {
+        list.innerHTML = '<li class="note">No documents uploaded yet.</li>';
+        _setParseStatus(null);
+        return;
+      }
+      list.innerHTML = docs.map(d =>
+        `<li data-doc-id="${d.id}"><strong>${d.filename}</strong>${_statusChip(d.parse_status)}</li>`
+      ).join('');
+      _setParseStatus(docs);
+    } catch (_) { /* non-critical */ }
+  }
+
+  function _setParseStatus(docs) {
+    const msg = document.getElementById('intake-parse-status-msg');
+    const bar = document.getElementById('intake-progress-bar');
+    const fill = document.getElementById('intake-progress-fill');
+    if (!docs || !docs.length) {
+      if (msg) msg.textContent = 'Upload documents to begin.';
+      if (bar) bar.style.display = 'none';
+      return;
+    }
+    const total = docs.length;
+    const done = docs.filter(d => d.parse_status === 'complete' || d.parse_status === 'failed').length;
+    const pct = Math.round((done / total) * 100);
+    if (msg) msg.textContent = `${done}/${total} parsed (${pct}%)`;
+    if (bar) bar.style.display = '';
+    if (fill) fill.style.width = `${pct}%`;
+  }
+
+  function _pollDoc(docId) {
+    if (_pollTimers[docId]) return;
+    _pollTimers[docId] = setInterval(async () => {
+      try {
+        const data = await apiFetch(`/api/parse-status/${docId}`);
+        if (data.parse_status === 'complete' || data.parse_status === 'failed') {
+          clearInterval(_pollTimers[docId]);
+          delete _pollTimers[docId];
+          await _loadDocs();
+        }
+      } catch (_) { /* keep polling */ }
+    }, 2500);
+  }
+
+  async function _uploadFile(file) {
+    if (!_proposalId) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('proposal_id', String(_proposalId));
+    try {
+      const resp = await fetch('/api/uploads', { method: 'POST', credentials: 'include', body: fd });
+      if (!resp.ok) throw new Error(`upload ${resp.status}`);
+      const data = await resp.json();
+      await _loadDocs();
+      // Start polling if not immediately complete
+      if (data.parse_status !== 'complete' && data.parse_status !== 'failed') {
+        _pollDoc(data.document_id);
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+    }
+  }
+
+  function setProposal(id) {
+    _proposalId = id;
+    _loadDocs();
+  }
+
+  function init() {
+    const dropzone = document.getElementById('intake-dropzone');
+    const fileInput = document.getElementById('intake-file-input');
+
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        Array.from(e.target.files).forEach(_uploadFile);
+        e.target.value = '';
+      });
+    }
+
+    if (dropzone) {
+      dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+      dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        Array.from(e.dataTransfer.files).forEach(_uploadFile);
+      });
+    }
+
+    const saveDraft = document.getElementById('intake-save-draft');
+    const saveStart = document.getElementById('intake-save-start');
+    if (saveDraft) {
+      saveDraft.addEventListener('click', async () => {
+        if (!_proposalId) {
+          const title = prompt('Proposal title:', 'New Proposal');
+          if (!title) return;
+          const p = await DashboardPanel.createProposal(title);
+          setProposal(p.id);
+        }
+        saveDraft.textContent = 'Saved';
+        setTimeout(() => { saveDraft.textContent = 'Save Draft'; }, 2000);
+      });
+    }
+    if (saveStart) {
+      saveStart.addEventListener('click', async () => {
+        if (!_proposalId) {
+          const title = prompt('Proposal title:', 'New Proposal');
+          if (!title) return;
+          const p = await DashboardPanel.createProposal(title);
+          setProposal(p.id);
+        }
+        if (_proposalId) {
+          try {
+            await apiFetch(`/api/proposals/${_proposalId}/tender/extract`, { method: 'POST' });
+            await _loadDocs();
+          } catch (err) {
+            console.error('Extract failed:', err);
+          }
+        }
+      });
+    }
+  }
+
+  return { init, setProposal, loadDocs: _loadDocs };
+})();
+
 /* ── Bootstrap on DOMContentLoaded ────────────────────────────── */
 if (typeof window !== 'undefined') {
   window.ElitezWorkflow = {
@@ -1585,6 +1728,7 @@ if (typeof window !== 'undefined') {
     syncAdminEmptyStates,
     RequirementReviewPanel,
     ConceptSelectionPanel,
+    TenderIntakePanel,
     DashboardPanel,
     SourceDrawer,
     RegenerateModal,
@@ -1600,6 +1744,7 @@ if (typeof window !== 'undefined') {
     AuthGate.init().then(() => {
       // These init after auth succeeds
       DashboardPanel.init();
+      TenderIntakePanel.init();
       RequirementReviewPanel.init();
       ConceptSelectionPanel.init();
     }).catch(() => {
