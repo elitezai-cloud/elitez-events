@@ -1,4 +1,8 @@
-from flask import Blueprint, jsonify, request
+import json
+import logging
+from datetime import datetime
+
+from flask import Blueprint, jsonify, request, session
 
 from ..models import (
     Approval,
@@ -13,12 +17,60 @@ from ..models import (
     StudioSlide,
     TemplateAsset,
     TenderDocument,
+    User,
     db,
 )
 from ..services.audit import record_audit
 
+logger = logging.getLogger(__name__)
+
 api_bp = Blueprint("api", __name__)
 
+# ── Auth guard ──────────────────────────────────────────────────────────────
+
+_AUTH_EXEMPT = {"/api/auth/login", "/api/auth/me", "/api/auth/logout"}
+
+
+@api_bp.before_request
+def require_auth():
+    if request.path not in _AUTH_EXEMPT:
+        if not session.get("user_email"):
+            return jsonify({"error": "not_authenticated"}), 401
+
+
+# ── Auth routes ─────────────────────────────────────────────────────────────
+
+@api_bp.post("/auth/login")
+def auth_login():
+    from flask import current_app
+    data = request.get_json(force=True)
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "invalid_credentials"}), 401
+    bcrypt = current_app.extensions.get("bcrypt")
+    if bcrypt is None or not bcrypt.check_password_hash(user.pw_hash, password):
+        return jsonify({"error": "invalid_credentials"}), 401
+    session["user_email"] = user.email
+    return jsonify({"ok": True, "email": user.email})
+
+
+@api_bp.post("/auth/logout")
+def auth_logout():
+    session.clear()
+    return jsonify({"ok": True})
+
+
+@api_bp.get("/auth/me")
+def auth_me():
+    email = session.get("user_email")
+    if not email:
+        return jsonify({"error": "not_authenticated"}), 401
+    return jsonify({"email": email})
+
+
+# ── Helper ──────────────────────────────────────────────────────────────────
 
 def _costing_rollup(proposal_id: int) -> dict:
     items = CostingItem.query.filter_by(proposal_id=proposal_id).all()
@@ -34,6 +86,73 @@ def _costing_rollup(proposal_id: int) -> dict:
     }
 
 
+def _requirements_summary(proposal_id: int) -> str:
+    reqs = Requirement.query.filter_by(proposal_id=proposal_id, is_deleted=False).all()
+    parts = [f"{r.category}: {r.content}" for r in reqs if r.content]
+    return "; ".join(parts[:20])  # cap at 20 items for prompt length
+
+
+def _serialize_requirement(r: Requirement) -> dict:
+    return {
+        "id": r.id,
+        "field_label": r.field_label or r.category,
+        "content": r.content,
+        "confidence": r.confidence,
+        "missing_field_severity": r.missing_field_severity,
+        "source_refs": json.loads(r.source_refs or "[]"),
+        "is_edited": r.is_edited,
+        "is_deleted": r.is_deleted,
+        "section_id": r.section_id or r.category,
+    }
+
+
+def _serialize_concept(c: Concept) -> dict:
+    return {
+        "concept_id": c.id,
+        "name": c.name,
+        "fit_score": c.fit_score,
+        "tags": json.loads(c.tags or "[]"),
+        "rationale": c.rationale or c.summary,
+        "kb_references": json.loads(c.kb_references or "[]"),
+        "status": c.status,
+        "rejected_reason": c.rejected_reason,
+    }
+
+
+# ── Proposals ───────────────────────────────────────────────────────────────
+
+@api_bp.get("/proposals")
+def list_proposals():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
+    q = request.args.get("q", "").strip()
+    query = Proposal.query
+    if q:
+        query = query.filter(Proposal.title.ilike(f"%{q}%"))
+    paginated = query.order_by(Proposal.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    return jsonify({
+        "proposals": [
+            {
+                "id": p.id,
+                "title": p.title,
+                "status": p.status,
+                "current_stage": p.current_stage,
+                "created_at": p.created_at.isoformat() + "Z",
+                "updated_at": p.updated_at.isoformat() + "Z",
+            }
+            for p in paginated.items
+        ],
+        "pagination": {
+            "page": paginated.page,
+            "per_page": paginated.per_page,
+            "total": paginated.total,
+            "pages": paginated.pages,
+        },
+    })
+
+
 @api_bp.post("/proposals")
 def create_proposal():
     data = request.get_json(force=True)
@@ -41,17 +160,54 @@ def create_proposal():
     db.session.add(proposal)
     db.session.commit()
     record_audit("proposal_created", {"title": proposal.title}, proposal.id)
-    return jsonify({"id": proposal.id, "status": proposal.status}), 201
+    return jsonify({
+        "id": proposal.id,
+        "title": proposal.title,
+        "status": proposal.status,
+        "current_stage": proposal.current_stage,
+        "created_at": proposal.created_at.isoformat() + "Z",
+        "updated_at": proposal.updated_at.isoformat() + "Z",
+    }), 201
 
+
+@api_bp.get("/proposals/<int:proposal_id>")
+def get_proposal(proposal_id: int):
+    p = Proposal.query.get_or_404(proposal_id)
+    return jsonify({
+        "id": p.id,
+        "title": p.title,
+        "status": p.status,
+        "current_stage": p.current_stage,
+        "created_at": p.created_at.isoformat() + "Z",
+        "updated_at": p.updated_at.isoformat() + "Z",
+    })
+
+
+# ── Tender intake ───────────────────────────────────────────────────────────
 
 @api_bp.post("/uploads")
 def upload_doc():
-    data = request.get_json(force=True)
-    doc = TenderDocument(
-        proposal_id=data["proposal_id"],
-        filename=data.get("filename", "tender.pdf"),
-        parse_status="queued",
-    )
+    if request.content_type and "multipart" in request.content_type:
+        f = request.files.get("file")
+        proposal_id = request.form.get("proposal_id")
+        filename = f.filename if f else "tender.pdf"
+        extracted_text = None
+        # Basic text extraction for .txt files only; PDF extraction is out of scope
+        if f and filename.endswith(".txt"):
+            extracted_text = f.read().decode("utf-8", errors="replace")
+        doc = TenderDocument(
+            proposal_id=int(proposal_id),
+            filename=filename,
+            parse_status="queued",
+            extracted_text=extracted_text,
+        )
+    else:
+        data = request.get_json(force=True)
+        doc = TenderDocument(
+            proposal_id=data["proposal_id"],
+            filename=data.get("filename", "tender.pdf"),
+            parse_status="queued",
+        )
     db.session.add(doc)
     db.session.commit()
     record_audit("document_uploaded", {"document_id": doc.id}, doc.proposal_id)
@@ -64,37 +220,256 @@ def parse_status(document_id: int):
     return jsonify({"document_id": doc.id, "parse_status": doc.parse_status})
 
 
+@api_bp.post("/proposals/<int:proposal_id>/tender/extract")
+def tender_extract(proposal_id: int):
+    Proposal.query.get_or_404(proposal_id)
+    doc = TenderDocument.query.filter_by(proposal_id=proposal_id).order_by(
+        TenderDocument.created_at.desc()
+    ).first()
+    if not doc:
+        return jsonify({"error": "no_document"}), 404
+
+    doc.parse_status = "parsing"
+    db.session.commit()
+
+    try:
+        from ..services.llm import extract_tender_requirements
+        result = extract_tender_requirements(doc.extracted_text, doc.filename)
+        sections_data = result.get("sections", [])
+    except Exception as exc:
+        logger.error("LLM tender extraction failed: %s", type(exc).__name__)
+        doc.parse_status = "error"
+        db.session.commit()
+        return jsonify({"error": "llm_parse_failed"}), 502
+
+    # Persist requirements
+    for section in sections_data:
+        for field in section.get("fields", []):
+            req = Requirement(
+                proposal_id=proposal_id,
+                category=section.get("name", "General"),
+                section_id=section.get("section_id", "general"),
+                field_label=field.get("field_label", ""),
+                content=field.get("content") or "",
+                confidence=field.get("confidence", 0.0),
+                missing_field_severity=field.get("missing_field_severity", "optional"),
+                source_refs=json.dumps(field.get("source_refs", [])),
+            )
+            db.session.add(req)
+
+    doc.parse_status = "complete"
+    db.session.commit()
+    record_audit("tender_extracted", {"document_id": doc.id}, proposal_id)
+
+    # Return same shape as GET /api/proposals/:id/requirements
+    return _build_requirements_response(proposal_id)
+
+
+# ── Requirements ────────────────────────────────────────────────────────────
+
+def _build_requirements_response(proposal_id: int):
+    proposal = Proposal.query.get_or_404(proposal_id)
+    reqs = Requirement.query.filter_by(proposal_id=proposal_id, is_deleted=False).all()
+
+    # Group by section
+    sections_map = {}
+    for r in reqs:
+        sec_id = r.section_id or r.category
+        if sec_id not in sections_map:
+            sections_map[sec_id] = {"section_id": sec_id, "name": r.category, "fields": []}
+        sections_map[sec_id]["fields"].append(_serialize_requirement(r))
+
+    return jsonify({
+        "proposal_id": proposal_id,
+        "sections": list(sections_map.values()),
+        "approved_by": proposal.requirements_approved_by,
+        "approved_at": (
+            proposal.requirements_approved_at.isoformat() + "Z"
+            if proposal.requirements_approved_at else None
+        ),
+    })
+
+
+@api_bp.get("/proposals/<int:proposal_id>/requirements")
+def get_requirements(proposal_id: int):
+    return _build_requirements_response(proposal_id)
+
+
 @api_bp.patch("/requirements/<int:req_id>")
 def edit_requirement(req_id: int):
     req = Requirement.query.get_or_404(req_id)
     data = request.get_json(force=True)
     req.content = data.get("content", req.content)
+    req.is_edited = True
     db.session.commit()
     record_audit("requirement_edited", {"requirement_id": req.id}, req.proposal_id)
-    return jsonify({"id": req.id, "content": req.content})
+    return jsonify(_serialize_requirement(req))
+
+
+@api_bp.delete("/requirements/<int:req_id>")
+def delete_requirement(req_id: int):
+    req = Requirement.query.get_or_404(req_id)
+    req.is_deleted = True
+    db.session.commit()
+    record_audit("requirement_deleted", {"requirement_id": req.id}, req.proposal_id)
+    return jsonify({"deleted": True, "id": req.id})
+
+
+@api_bp.post("/requirements/<int:req_id>/restore")
+def restore_requirement(req_id: int):
+    req = Requirement.query.get_or_404(req_id)
+    req.is_deleted = False
+    db.session.commit()
+    record_audit("requirement_restored", {"requirement_id": req.id}, req.proposal_id)
+    return jsonify(_serialize_requirement(req))
+
+
+@api_bp.post("/proposals/<int:proposal_id>/requirements/approve")
+def approve_requirements(proposal_id: int):
+    proposal = Proposal.query.get_or_404(proposal_id)
+    reqs = Requirement.query.filter_by(proposal_id=proposal_id, is_deleted=False).all()
+
+    # Check required fields
+    missing_required = [
+        r for r in reqs
+        if r.missing_field_severity == "required" and not r.content
+    ]
+    if missing_required:
+        return jsonify({"error": "missing_required_fields", "count": len(missing_required)}), 409
+
+    user_email = session.get("user_email", "demo@elitez.local")
+    proposal.requirements_approved_by = user_email
+    proposal.requirements_approved_at = datetime.utcnow()
+    proposal.current_stage = "concept_selection"
+    db.session.commit()
+    record_audit("requirements_approved", {"proposal_id": proposal_id}, proposal_id)
+    return jsonify({
+        "approved_by": proposal.requirements_approved_by,
+        "approved_at": proposal.requirements_approved_at.isoformat() + "Z",
+        "current_stage": proposal.current_stage,
+    })
+
+
+# ── Concepts ────────────────────────────────────────────────────────────────
+
+@api_bp.get("/proposals/<int:proposal_id>/concepts")
+def get_concepts(proposal_id: int):
+    Proposal.query.get_or_404(proposal_id)
+    concepts = Concept.query.filter_by(proposal_id=proposal_id).all()
+    return jsonify({
+        "proposal_id": proposal_id,
+        "concepts": [_serialize_concept(c) for c in concepts],
+    })
 
 
 @api_bp.post("/concepts/generate")
 def generate_concepts():
     data = request.get_json(force=True)
-    concept = Concept(
-        proposal_id=data["proposal_id"],
-        name="AI Concept",
-        summary="Generated concept summary",
-    )
-    db.session.add(concept)
+    proposal_id = data["proposal_id"]
+    proposal = Proposal.query.get_or_404(proposal_id)
+    guidance = data.get("guidance", "")
+    regenerate = data.get("regenerate", False)
+
+    req_summary = _requirements_summary(proposal_id)
+
+    try:
+        from ..services.llm import generate_concepts as llm_generate
+        raw_concepts = llm_generate(proposal.title, req_summary)
+    except Exception as exc:
+        logger.error("LLM concept generation failed: %s", type(exc).__name__)
+        # Fallback: 3 placeholder concepts
+        raw_concepts = [
+            {"name": "Concept A", "fit_score": 0.5, "tags": [], "rationale": "LLM unavailable — placeholder concept", "kb_references": []},
+            {"name": "Concept B", "fit_score": 0.5, "tags": [], "rationale": "LLM unavailable — placeholder concept", "kb_references": []},
+            {"name": "Concept C", "fit_score": 0.5, "tags": [], "rationale": "LLM unavailable — placeholder concept", "kb_references": []},
+        ]
+
+    # If regenerating, mark existing concepts as archived (don't delete for history)
+    if regenerate:
+        existing = Concept.query.filter_by(proposal_id=proposal_id).all()
+        for c in existing:
+            c.status = "archived"
+
+    saved = []
+    for rc in raw_concepts:
+        concept = Concept(
+            proposal_id=proposal_id,
+            name=rc.get("name", "Unnamed"),
+            summary=rc.get("rationale", ""),
+            fit_score=rc.get("fit_score", 0.5),
+            tags=json.dumps(rc.get("tags", [])),
+            rationale=rc.get("rationale", ""),
+            kb_references=json.dumps(rc.get("kb_references", [])),
+            status="available",
+        )
+        db.session.add(concept)
+        saved.append(concept)
+
     db.session.commit()
-    record_audit("concept_generated", {"concept_id": concept.id}, concept.proposal_id)
-    return jsonify({"concept_id": concept.id}), 201
+    record_audit("concepts_generated", {"proposal_id": proposal_id, "count": len(saved)}, proposal_id)
+
+    return jsonify({
+        "concepts": [_serialize_concept(c) for c in saved]
+    }), 201
 
 
-@api_bp.post("/concepts/<int:concept_id>/retry")
-def retry_concept(concept_id: int):
+@api_bp.patch("/concepts/<int:concept_id>")
+def patch_concept(concept_id: int):
     concept = Concept.query.get_or_404(concept_id)
-    concept.summary = "Regenerated concept summary"
+    data = request.get_json(force=True)
+    if "status" in data:
+        concept.status = data["status"]
+    if "rejected_reason" in data:
+        concept.rejected_reason = data["rejected_reason"]
     db.session.commit()
-    record_audit("concept_regenerated", {"concept_id": concept.id}, concept.proposal_id)
-    return jsonify({"concept_id": concept.id, "summary": concept.summary})
+    record_audit("concept_patched", {"concept_id": concept.id}, concept.proposal_id)
+    return jsonify(_serialize_concept(concept))
+
+
+@api_bp.post("/proposals/<int:proposal_id>/concepts/approve")
+def approve_concept(proposal_id: int):
+    proposal = Proposal.query.get_or_404(proposal_id)
+    data = request.get_json(force=True)
+    concept_id = data.get("concept_id")
+    concept = Concept.query.filter_by(id=concept_id, proposal_id=proposal_id).first()
+    if not concept:
+        return jsonify({"error": "concept_not_found"}), 404
+
+    concept.status = "selected"
+    user_email = session.get("user_email", "demo@elitez.local")
+    proposal.concept_approved_by = user_email
+    proposal.concept_approved_at = datetime.utcnow()
+    proposal.current_stage = "costing_builder"
+    db.session.commit()
+    record_audit("concept_approved", {"concept_id": concept_id}, proposal_id)
+    return jsonify({
+        "approved_by": proposal.concept_approved_by,
+        "approved_at": proposal.concept_approved_at.isoformat() + "Z",
+        "current_stage": proposal.current_stage,
+    })
+
+
+# ── Costing ─────────────────────────────────────────────────────────────────
+
+@api_bp.get("/proposals/<int:proposal_id>/costing/items")
+def get_costing_items(proposal_id: int):
+    Proposal.query.get_or_404(proposal_id)
+    items = CostingItem.query.filter_by(proposal_id=proposal_id).all()
+    return jsonify({
+        "proposal_id": proposal_id,
+        "items": [
+            {
+                "item_id": item.id,
+                "item_name": item.item_name,
+                "quantity": item.quantity,
+                "unit_cost": item.unit_cost,
+                "status": item.status,
+                "line_total": round(item.quantity * item.unit_cost, 2),
+            }
+            for item in items
+        ],
+        "summary": _costing_rollup(proposal_id),
+    })
 
 
 @api_bp.post("/costing/items")
@@ -122,14 +497,13 @@ def patch_costing_item(item_id: int):
     item.status = data.get("status", item.status)
     db.session.commit()
     record_audit("costing_item_updated", {"item_id": item.id}, item.proposal_id)
-    return jsonify(
-        {
-            "item_id": item.id,
-            "quantity": item.quantity,
-            "unit_cost": item.unit_cost,
-            "status": item.status,
-        }
-    )
+    return jsonify({
+        "item_id": item.id,
+        "quantity": item.quantity,
+        "unit_cost": item.unit_cost,
+        "status": item.status,
+        "line_total": round(item.quantity * item.unit_cost, 2),
+    })
 
 
 @api_bp.post("/costing/items/<int:item_id>/duplicate")
@@ -154,7 +528,7 @@ def delete_costing_item(item_id: int):
     proposal_id = item.proposal_id
     db.session.delete(item)
     db.session.commit()
-    record_audit("costing_item_deleted", {"item_id": item.id}, proposal_id)
+    record_audit("costing_item_deleted", {"item_id": item_id}, proposal_id)
     return jsonify({"deleted": True}), 200
 
 
@@ -172,14 +546,18 @@ def snapshot_costing_version(proposal_id: int):
     version = CostingVersion(
         proposal_id=proposal_id,
         version_label=f"v{version_count}",
-        summary=str(rollup),
+        summary=json.dumps(rollup),
     )
     db.session.add(version)
     db.session.commit()
-    record_audit(
-        "costing_version_created", {"version_id": version.id}, version.proposal_id
-    )
-    return jsonify({"version_id": version.id, "version_label": version.version_label}), 201
+    record_audit("costing_version_created", {"version_id": version.id}, proposal_id)
+    return jsonify({
+        "version_id": version.id,
+        "version_label": version.version_label,
+        "subtotal": rollup["subtotal"],
+        "item_count": rollup["item_count"],
+        "missing_count": rollup["missing_count"],
+    }), 201
 
 
 @api_bp.get("/proposals/<int:proposal_id>/costing/version-history")
@@ -190,34 +568,108 @@ def get_costing_versions(proposal_id: int):
         .order_by(CostingVersion.created_at.desc())
         .all()
     )
-    return jsonify(
-        [
-            {
-                "version_id": version.id,
-                "version_label": version.version_label,
-                "summary": version.summary,
-            }
-            for version in versions
-        ]
-    )
+    return jsonify([
+        {
+            "version_id": v.id,
+            "version_label": v.version_label,
+            "summary": v.summary,
+        }
+        for v in versions
+    ])
 
 
-@api_bp.post("/proposals/<int:proposal_id>/generate")
-def generate_proposal(proposal_id: int):
+# ── Studio slides ───────────────────────────────────────────────────────────
+
+@api_bp.get("/proposals/<int:proposal_id>/studio/slides")
+def get_studio_slides(proposal_id: int):
     Proposal.query.get_or_404(proposal_id)
-    record_audit("proposal_generated", {"proposal_id": proposal_id}, proposal_id)
-    return jsonify({"proposal_id": proposal_id, "status": "generated"})
+    slides = (
+        StudioSlide.query.filter_by(proposal_id=proposal_id)
+        .order_by(StudioSlide.position)
+        .all()
+    )
+    return jsonify({
+        "proposal_id": proposal_id,
+        "slides": [
+            {
+                "slide_id": s.id,
+                "title": s.title,
+                "content": s.content,
+                "position": s.position,
+                "status": s.status,
+            }
+            for s in slides
+        ],
+    })
 
 
-@api_bp.post("/exports/packages")
-def create_export_package():
+@api_bp.post("/proposals/<int:proposal_id>/studio/slides")
+def create_studio_slide(proposal_id: int):
+    Proposal.query.get_or_404(proposal_id)
     data = request.get_json(force=True)
-    export = ExportPackage(proposal_id=data["proposal_id"], status="ready")
-    db.session.add(export)
+    current_count = StudioSlide.query.filter_by(proposal_id=proposal_id).count()
+    slide = StudioSlide(
+        proposal_id=proposal_id,
+        title=data.get("title", "Untitled Slide"),
+        content=data.get("content", ""),
+        position=current_count + 1,
+        status="ai_drafted",
+    )
+    db.session.add(slide)
     db.session.commit()
-    record_audit("export_created", {"export_id": export.id}, export.proposal_id)
-    return jsonify({"export_id": export.id, "status": export.status}), 201
+    record_audit("studio_slide_created", {"slide_id": slide.id}, proposal_id)
+    return jsonify({"slide_id": slide.id, "position": slide.position}), 201
 
+
+@api_bp.patch("/studio/slides/<int:slide_id>/reorder")
+def reorder_studio_slide(slide_id: int):
+    slide = StudioSlide.query.get_or_404(slide_id)
+    data = request.get_json(force=True)
+    new_pos = data.get("position", slide.position)
+    slide.position = new_pos
+    db.session.flush()
+    # Renumber all slides for this proposal to avoid collision
+    all_slides = (
+        StudioSlide.query.filter_by(proposal_id=slide.proposal_id)
+        .order_by(StudioSlide.position)
+        .all()
+    )
+    for i, s in enumerate(all_slides, start=1):
+        s.position = i
+    db.session.commit()
+    record_audit("studio_slide_reordered", {"slide_id": slide.id}, slide.proposal_id)
+    return jsonify({"slide_id": slide.id, "position": slide.position})
+
+
+@api_bp.post("/studio/slides/<int:slide_id>/regenerate")
+def regenerate_studio_slide(slide_id: int):
+    slide = StudioSlide.query.get_or_404(slide_id)
+    data = request.get_json(silent=True) or {}
+    guidance = data.get("guidance", "")
+
+    proposal = Proposal.query.get(slide.proposal_id)
+    req_summary = _requirements_summary(slide.proposal_id) if proposal else ""
+
+    try:
+        from ..services.llm import regenerate_slide as llm_regen
+        new_content = llm_regen(
+            slide_title=slide.title,
+            current_content=slide.content,
+            proposal_title=proposal.title if proposal else "",
+            requirements_summary=req_summary,
+            guidance=guidance,
+        )
+        slide.content = new_content
+        slide.status = "ready"
+        db.session.commit()
+        record_audit("studio_slide_regenerated", {"slide_id": slide.id}, slide.proposal_id)
+        return jsonify({"slide_id": slide.id, "status": slide.status, "content": slide.content})
+    except Exception as exc:
+        logger.error("LLM slide regeneration failed: %s", type(exc).__name__)
+        return jsonify({"slide_id": slide.id, "status": "error", "content": None}), 502
+
+
+# ── Export & Approvals ──────────────────────────────────────────────────────
 
 @api_bp.post("/proposals/<int:proposal_id>/exports/drafts")
 def create_export_draft(proposal_id: int):
@@ -251,17 +703,15 @@ def list_export_drafts(proposal_id: int):
         .order_by(ExportDraft.created_at.desc())
         .all()
     )
-    return jsonify(
-        [
-            {
-                "draft_id": draft.id,
-                "parent_version": draft.parent_version,
-                "artifact_type": draft.artifact_type,
-                "state": draft.state,
-            }
-            for draft in drafts
-        ]
-    )
+    return jsonify([
+        {
+            "draft_id": d.id,
+            "parent_version": d.parent_version,
+            "artifact_type": d.artifact_type,
+            "state": d.state,
+        }
+        for d in drafts
+    ])
 
 
 @api_bp.post("/exports/drafts/<int:draft_id>/promote")
@@ -271,41 +721,93 @@ def promote_export_draft(draft_id: int):
     export = ExportPackage(proposal_id=draft.proposal_id, status="ready")
     db.session.add(export)
     db.session.commit()
-    record_audit(
-        "export_draft_promoted",
-        {"draft_id": draft.id, "export_id": export.id},
-        draft.proposal_id,
-    )
+    record_audit("export_draft_promoted", {"draft_id": draft.id, "export_id": export.id}, draft.proposal_id)
     return jsonify({"export_id": export.id, "status": export.status})
 
 
-@api_bp.post("/admin/assets")
-def create_asset():
+@api_bp.post("/exports/packages")
+def create_export_package():
     data = request.get_json(force=True)
-    asset = TemplateAsset(asset_type=data["asset_type"], title=data["title"])
-    db.session.add(asset)
+    export = ExportPackage(proposal_id=data["proposal_id"], status="ready")
+    db.session.add(export)
     db.session.commit()
-    record_audit("asset_created", {"asset_id": asset.id})
-    return jsonify({"asset_id": asset.id}), 201
+    record_audit("export_created", {"export_id": export.id}, export.proposal_id)
+    return jsonify({"export_id": export.id, "status": export.status}), 201
 
 
-@api_bp.patch("/admin/assets/<int:asset_id>")
-def patch_asset(asset_id: int):
-    asset = TemplateAsset.query.get_or_404(asset_id)
+@api_bp.post("/approvals")
+def create_approval():
     data = request.get_json(force=True)
-    asset.is_duplicate_candidate = data.get(
-        "is_duplicate_candidate", asset.is_duplicate_candidate
+    user_email = session.get("user_email", "demo@elitez.local")
+    approval = Approval(
+        proposal_id=data["proposal_id"],
+        approver=data.get("approver", user_email),
+        decision="pending",
     )
-    asset.is_stale = data.get("is_stale", asset.is_stale)
+    db.session.add(approval)
     db.session.commit()
-    record_audit("asset_governance_updated", {"asset_id": asset.id})
-    return jsonify(
-        {
-            "asset_id": asset.id,
-            "is_duplicate_candidate": asset.is_duplicate_candidate,
-            "is_stale": asset.is_stale,
-        }
-    )
+    record_audit("approval_created", {"approval_id": approval.id}, approval.proposal_id)
+    return jsonify({
+        "approval_id": approval.id,
+        "decision": approval.decision,
+        "approver": approval.approver,
+    }), 201
+
+
+@api_bp.patch("/approvals/<int:approval_id>")
+def update_approval(approval_id: int):
+    approval = Approval.query.get_or_404(approval_id)
+    data = request.get_json(force=True)
+    approval.decision = data.get("decision", approval.decision)
+    db.session.commit()
+    record_audit("approval_updated", {"approval_id": approval.id, "decision": approval.decision}, approval.proposal_id)
+    return jsonify({"approval_id": approval.id, "decision": approval.decision})
+
+
+# ── Admin ───────────────────────────────────────────────────────────────────
+
+@api_bp.get("/admin/pricing")
+def list_pricing():
+    items = PricingCatalogItem.query.order_by(PricingCatalogItem.item_name).all()
+    return jsonify({
+        "items": [
+            {
+                "id": item.id,
+                "item_name": item.item_name,
+                "unit": item.unit,
+                "current_price": item.current_price,
+                "is_stale": item.is_stale,
+                "has_variance_warning": item.has_variance_warning,
+            }
+            for item in items
+        ]
+    })
+
+
+@api_bp.patch("/admin/pricing/<int:item_id>")
+def patch_pricing_item(item_id: int):
+    item = PricingCatalogItem.query.get_or_404(item_id)
+    data = request.get_json(force=True)
+    if "current_price" in data:
+        item.current_price = float(data["current_price"])
+    if "item_name" in data:
+        item.item_name = data["item_name"]
+    if "unit" in data:
+        item.unit = data["unit"]
+    if "is_stale" in data:
+        item.is_stale = bool(data["is_stale"])
+    if "has_variance_warning" in data:
+        item.has_variance_warning = bool(data["has_variance_warning"])
+    db.session.commit()
+    record_audit("pricing_catalog_item_updated", {"pricing_item_id": item.id})
+    return jsonify({
+        "id": item.id,
+        "item_name": item.item_name,
+        "unit": item.unit,
+        "current_price": item.current_price,
+        "is_stale": item.is_stale,
+        "has_variance_warning": item.has_variance_warning,
+    })
 
 
 @api_bp.post("/admin/pricing")
@@ -336,6 +838,31 @@ def refresh_pricing_item(item_id: int):
 @api_bp.post("/admin/pricing/publish")
 def publish_pricing_catalog():
     return jsonify({"status": "published", "asset_count": PricingCatalogItem.query.count()})
+
+
+@api_bp.post("/admin/assets")
+def create_asset():
+    data = request.get_json(force=True)
+    asset = TemplateAsset(asset_type=data["asset_type"], title=data["title"])
+    db.session.add(asset)
+    db.session.commit()
+    record_audit("asset_created", {"asset_id": asset.id})
+    return jsonify({"asset_id": asset.id}), 201
+
+
+@api_bp.patch("/admin/assets/<int:asset_id>")
+def patch_asset(asset_id: int):
+    asset = TemplateAsset.query.get_or_404(asset_id)
+    data = request.get_json(force=True)
+    asset.is_duplicate_candidate = data.get("is_duplicate_candidate", asset.is_duplicate_candidate)
+    asset.is_stale = data.get("is_stale", asset.is_stale)
+    db.session.commit()
+    record_audit("asset_governance_updated", {"asset_id": asset.id})
+    return jsonify({
+        "asset_id": asset.id,
+        "is_duplicate_candidate": asset.is_duplicate_candidate,
+        "is_stale": asset.is_stale,
+    })
 
 
 @api_bp.post("/admin/assets/<int:asset_id>/publish")
@@ -372,101 +899,46 @@ def governance_summary():
     variance_pricing = PricingCatalogItem.query.filter_by(has_variance_warning=True).count()
     duplicate_assets = TemplateAsset.query.filter_by(is_duplicate_candidate=True).count()
     stale_assets = TemplateAsset.query.filter_by(is_stale=True).count()
-    return jsonify(
-        {
-            "pricing": {
-                "stale_count": stale_pricing,
-                "variance_warning_count": variance_pricing,
-            },
-            "assets": {
-                "duplicate_candidate_count": duplicate_assets,
-                "stale_count": stale_assets,
-            },
-        }
-    )
+    return jsonify({
+        "pricing": {
+            "stale_count": stale_pricing,
+            "variance_warning_count": variance_pricing,
+        },
+        "assets": {
+            "duplicate_candidate_count": duplicate_assets,
+            "stale_count": stale_assets,
+        },
+    })
 
 
-@api_bp.post("/proposals/<int:proposal_id>/studio/slides")
-def create_studio_slide(proposal_id: int):
+# ── Misc legacy / audit ─────────────────────────────────────────────────────
+
+@api_bp.post("/proposals/<int:proposal_id>/generate")
+def generate_proposal(proposal_id: int):
     Proposal.query.get_or_404(proposal_id)
-    data = request.get_json(force=True)
-    current_count = StudioSlide.query.filter_by(proposal_id=proposal_id).count()
-    slide = StudioSlide(
-        proposal_id=proposal_id,
-        title=data.get("title", "Untitled Slide"),
-        content=data.get("content", ""),
-        position=current_count + 1,
-        status="ai_drafted",
-    )
-    db.session.add(slide)
+    record_audit("proposal_generated", {"proposal_id": proposal_id}, proposal_id)
+    return jsonify({"proposal_id": proposal_id, "status": "generated"})
+
+
+@api_bp.post("/concepts/<int:concept_id>/retry")
+def retry_concept(concept_id: int):
+    concept = Concept.query.get_or_404(concept_id)
+    concept.summary = "Regenerated concept summary"
     db.session.commit()
-    record_audit("studio_slide_created", {"slide_id": slide.id}, proposal_id)
-    return jsonify({"slide_id": slide.id, "position": slide.position}), 201
-
-
-@api_bp.patch("/studio/slides/<int:slide_id>/reorder")
-def reorder_studio_slide(slide_id: int):
-    slide = StudioSlide.query.get_or_404(slide_id)
-    data = request.get_json(force=True)
-    slide.position = data.get("position", slide.position)
-    db.session.commit()
-    record_audit("studio_slide_reordered", {"slide_id": slide.id}, slide.proposal_id)
-    return jsonify({"slide_id": slide.id, "position": slide.position})
-
-
-@api_bp.post("/studio/slides/<int:slide_id>/regenerate")
-def regenerate_studio_slide(slide_id: int):
-    slide = StudioSlide.query.get_or_404(slide_id)
-    data = request.get_json(silent=True) or {}
-    guidance = data.get("guidance", "")
-    slide.content = f"Regenerated content{': ' + guidance if guidance else ''}"
-    slide.status = "ready"
-    db.session.commit()
-    record_audit("studio_slide_regenerated", {"slide_id": slide.id}, slide.proposal_id)
-    return jsonify({"slide_id": slide.id, "status": slide.status, "content": slide.content})
+    record_audit("concept_regenerated", {"concept_id": concept.id}, concept.proposal_id)
+    return jsonify({"concept_id": concept.id, "summary": concept.summary})
 
 
 @api_bp.get("/audit")
 def get_audit():
     from ..models import AuditEvent
-
     events = AuditEvent.query.order_by(AuditEvent.created_at.desc()).limit(100).all()
-    return jsonify(
-        [
-            {
-                "id": e.id,
-                "proposal_id": e.proposal_id,
-                "event_type": e.event_type,
-                "details": e.details,
-            }
-            for e in events
-        ]
-    )
-
-
-@api_bp.post("/approvals")
-def create_approval():
-    data = request.get_json(force=True)
-    approval = Approval(
-        proposal_id=data["proposal_id"],
-        approver=data.get("approver", "manager@elitez.local"),
-        decision="pending",
-    )
-    db.session.add(approval)
-    db.session.commit()
-    record_audit("approval_created", {"approval_id": approval.id}, approval.proposal_id)
-    return jsonify({"approval_id": approval.id, "decision": approval.decision}), 201
-
-
-@api_bp.patch("/approvals/<int:approval_id>")
-def update_approval(approval_id: int):
-    approval = Approval.query.get_or_404(approval_id)
-    data = request.get_json(force=True)
-    approval.decision = data.get("decision", approval.decision)
-    db.session.commit()
-    record_audit(
-        "approval_updated",
-        {"approval_id": approval.id, "decision": approval.decision},
-        approval.proposal_id,
-    )
-    return jsonify({"approval_id": approval.id, "decision": approval.decision})
+    return jsonify([
+        {
+            "id": e.id,
+            "proposal_id": e.proposal_id,
+            "event_type": e.event_type,
+            "details": e.details,
+        }
+        for e in events
+    ])

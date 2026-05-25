@@ -13,11 +13,23 @@ class TimestampMixin:
     )
 
 
+class User(db.Model, TimestampMixin):
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), nullable=False, unique=True)
+    pw_hash = db.Column(db.String(255), nullable=False)
+
+
 class Proposal(db.Model, TimestampMixin):
     __tablename__ = "proposals"
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     status = db.Column(db.String(32), nullable=False, default="draft")
+    current_stage = db.Column(db.String(32), nullable=False, default="tender_intake")
+    requirements_approved_by = db.Column(db.String(255), nullable=True)
+    requirements_approved_at = db.Column(db.DateTime, nullable=True)
+    concept_approved_by = db.Column(db.String(255), nullable=True)
+    concept_approved_at = db.Column(db.DateTime, nullable=True)
 
 
 class TenderDocument(db.Model, TimestampMixin):
@@ -26,6 +38,8 @@ class TenderDocument(db.Model, TimestampMixin):
     proposal_id = db.Column(db.Integer, db.ForeignKey("proposals.id"), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
     parse_status = db.Column(db.String(32), nullable=False, default="queued")
+    extracted_text = db.Column(db.Text, nullable=True)
+    extracted_summary = db.Column(db.Text, nullable=True)
 
 
 class Requirement(db.Model, TimestampMixin):
@@ -33,7 +47,14 @@ class Requirement(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     proposal_id = db.Column(db.Integer, db.ForeignKey("proposals.id"), nullable=False)
     category = db.Column(db.String(64), nullable=False)
-    content = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=False, default="")
+    confidence = db.Column(db.Float, nullable=False, default=0.0)
+    field_label = db.Column(db.String(255), nullable=True)
+    section_id = db.Column(db.String(64), nullable=True)
+    missing_field_severity = db.Column(db.String(16), nullable=False, default="optional")
+    source_refs = db.Column(db.Text, nullable=False, default="[]")  # JSON string
+    is_edited = db.Column(db.Boolean, nullable=False, default=False)
+    is_deleted = db.Column(db.Boolean, nullable=False, default=False)
 
 
 class Concept(db.Model, TimestampMixin):
@@ -41,7 +62,13 @@ class Concept(db.Model, TimestampMixin):
     id = db.Column(db.Integer, primary_key=True)
     proposal_id = db.Column(db.Integer, db.ForeignKey("proposals.id"), nullable=False)
     name = db.Column(db.String(255), nullable=False)
-    summary = db.Column(db.Text, nullable=False)
+    summary = db.Column(db.Text, nullable=False, default="")
+    fit_score = db.Column(db.Float, nullable=False, default=0.5)
+    tags = db.Column(db.Text, nullable=False, default="[]")  # JSON string
+    rationale = db.Column(db.Text, nullable=True)
+    kb_references = db.Column(db.Text, nullable=False, default="[]")  # JSON string
+    status = db.Column(db.String(16), nullable=False, default="available")
+    rejected_reason = db.Column(db.Text, nullable=True)
 
 
 class CostingItem(db.Model, TimestampMixin):

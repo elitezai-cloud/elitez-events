@@ -33,10 +33,10 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
         <div class="nav-user">
-          <div class="nav-avatar" style="background:#3b82f6" aria-hidden="true">AM</div>
+          <div class="nav-avatar" style="background:#3b82f6" aria-hidden="true">—</div>
           <div class="nav-user-info">
-            <div class="nav-user-name">Alex Morgan</div>
-            <div class="nav-user-role">Proposal Manager</div>
+            <div class="nav-user-name" data-user-name>—</div>
+            <div class="nav-user-role" data-user-name>—</div>
           </div>
         </div>
       </div>
@@ -132,7 +132,7 @@
 
           <!-- Greeting -->
           <div class="dashboard-greeting">
-            <h1>Good morning, Alex</h1>
+            <h1><span data-greeting-name>Good morning</span></h1>
             <p>Here's what's happening with your proposals</p>
           </div>
 
@@ -201,7 +201,7 @@
                 <button class="primary-btn new-proposal-btn">+ New Proposal</button>
               </div>
               <div class="proposals-filter-bar">
-                <input type="search" class="table-search" placeholder="Search a proposal…" aria-label="Search proposals" />
+                <input type="search" id="proposals-search" class="table-search" placeholder="Search a proposal…" aria-label="Search proposals" />
                 <select class="filter-select" aria-label="Filter by status">
                   <option>All Statuses</option>
                   <option>Approved</option>
@@ -227,94 +227,24 @@
               <table class="proposals-table">
                 <thead>
                   <tr>
-                    <th style="width:36px"></th>
                     <th>Proposal Name</th>
-                    <th>Client</th>
-                    <th>Owner</th>
                     <th>Status</th>
-                    <th>Blocker</th>
+                    <th>Stage</th>
+                    <th>Created</th>
                     <th>Updated</th>
                     <th style="text-align:right">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="proposals-tbody">
                   <tr>
-                    <td><div class="avatar" style="background:#3b82f6">AM</div></td>
-                    <td><span class="proposal-name">Global Analytics Platform</span></td>
-                    <td class="proposal-client">Acme Inc.</td>
-                    <td class="prop-owner">Alex Morgan</td>
-                    <td><span class="status-pill status--approved">Approved</span></td>
-                    <td class="blocker-text">—</td>
-                    <td class="date-text">May 10, 2026</td>
-                    <td><div class="row-actions" style="justify-content:flex-end"><button class="action-btn">View</button><button class="action-btn">Edit</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><div class="avatar" style="background:#10b981">TC</div></td>
-                    <td><span class="proposal-name">Cybersecurity Readiness</span></td>
-                    <td class="proposal-client">Pacific Financial</td>
-                    <td class="prop-owner">Taylor Chen</td>
-                    <td><span class="status-pill status--review">In Review</span></td>
-                    <td class="blocker-text">Budget gap</td>
-                    <td class="date-text">May 15, 2026</td>
-                    <td><div class="row-actions" style="justify-content:flex-end"><button class="action-btn">View</button><button class="action-btn">Edit</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><div class="avatar" style="background:#8b5cf6">RP</div></td>
-                    <td><span class="proposal-name">Cloud Migration Program</span></td>
-                    <td class="proposal-client">CloudVentures</td>
-                    <td class="prop-owner">Rai Patel</td>
-                    <td><span class="status-pill status--draft">Draft</span></td>
-                    <td class="blocker-text">—</td>
-                    <td class="date-text">May 12, 2026</td>
-                    <td><div class="row-actions" style="justify-content:flex-end"><button class="action-btn">View</button><button class="action-btn">Edit</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><div class="avatar" style="background:#f59e0b">RH</div></td>
-                    <td><span class="proposal-name">Customer Experience Initiative</span></td>
-                    <td class="proposal-client">Highland Retail</td>
-                    <td class="prop-owner">Riley Harmon</td>
-                    <td><span class="status-pill status--review">In Review</span></td>
-                    <td class="blocker-text">Missing scope</td>
-                    <td class="date-text">May 8, 2026</td>
-                    <td><div class="row-actions" style="justify-content:flex-end"><button class="action-btn">View</button><button class="action-btn">Edit</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><div class="avatar" style="background:#6366f1">JK</div></td>
-                    <td><span class="proposal-name">ERP Transformation</span></td>
-                    <td class="proposal-client">BrightLink</td>
-                    <td class="prop-owner">Jesse Kumar</td>
-                    <td><span class="status-pill status--exported">Exported</span></td>
-                    <td class="blocker-text">—</td>
-                    <td class="date-text">May 14, 2026</td>
-                    <td><div class="row-actions" style="justify-content:flex-end"><button class="action-btn">View</button><button class="action-btn">Edit</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><div class="avatar" style="background:#14b8a6">MO</div></td>
-                    <td><span class="proposal-name">AI Strategy Engagement</span></td>
-                    <td class="proposal-client">Prism Labs</td>
-                    <td class="prop-owner">Morgan Osei</td>
-                    <td><span class="status-pill status--approved">Approved</span></td>
-                    <td class="blocker-text">—</td>
-                    <td class="date-text">May 13, 2026</td>
-                    <td><div class="row-actions" style="justify-content:flex-end"><button class="action-btn">View</button><button class="action-btn">Edit</button></div></td>
-                  </tr>
-                  <tr>
-                    <td><div class="avatar" style="background:#f43f5e">SL</div></td>
-                    <td><span class="proposal-name">Workplace Modernization</span></td>
-                    <td class="proposal-client">Aurora Bank</td>
-                    <td class="prop-owner">Sam Lee</td>
-                    <td><span class="status-pill status--draft">Draft</span></td>
-                    <td class="blocker-text">—</td>
-                    <td class="date-text">May 11, 2026</td>
-                    <td><div class="row-actions" style="justify-content:flex-end"><button class="action-btn">View</button><button class="action-btn">Edit</button></div></td>
-                  </tr>
+                  <!-- Populated by DashboardPanel JS -->
                 </tbody>
               </table>
               <div class="table-footer">
-                <span class="table-footer-count">Showing 1–7 of 12 proposals</span>
+                <span class="table-footer-count" id="proposals-count">—</span>
                 <div class="page-controls">
                   <button class="page-btn" id="page-prev" aria-label="Previous page" disabled>← Prev</button>
-                  <span class="page-info">Page <span id="page-current">1</span> of 2</span>
+                  <span class="page-info" id="page-info">Page 1</span>
                   <button class="page-btn" id="page-next" aria-label="Next page">Next →</button>
                 </div>
               </div>
@@ -460,141 +390,241 @@
         </section>
 
         <!-- ════════════════════════════════════════════════════════
-             STAGE 3 — Requirement Review  [ELIA-1353 implementation]
+             STAGE 3 — Requirement Review
         ════════════════════════════════════════════════════════════ -->
-        <section class="stage-content" data-content="requirements" id="stage-requirements">
+        <section class="stage-content" data-content="requirements">
           <div class="stage-topbar">
             <div>
               <h2>Requirement Review</h2>
               <p>Review and approve AI-extracted requirements before concept generation</p>
             </div>
             <div class="action-row" style="margin-top:0">
-              <button class="secondary-btn req-extract-cta">Run extraction</button>
+              <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text-subtle)">Dev state:
+                <select id="req-state-dev" class="filter-select" aria-label="Dev: switch requirement state" style="height:28px;font-size:.78rem">
+                  <option value="active">Active</option>
+                  <option value="empty">Empty</option>
+                  <option value="loading">Loading</option>
+                  <option value="error">Error</option>
+                  <option value="locked">Locked</option>
+                </select>
+              </label>
             </div>
           </div>
 
-          <!-- State: empty -->
-          <div id="req-state-empty" class="req-state" style="display:none">
-            <div class="panel" style="text-align:center;padding:48px 24px">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom:16px" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              <p style="margin:0 0 16px;color:var(--text-subtle)">No requirements extracted yet. Upload tender documents in Tender Intake first, then run extraction.</p>
-              <button class="primary-btn req-extract-cta">Run extraction</button>
-            </div>
-          </div>
+          <div id="req-panel" data-req-state="active">
 
-          <!-- State: loading (skeleton) -->
-          <div id="req-state-loading" class="req-state" style="display:none" role="status" aria-live="polite" aria-label="Extracting requirements">
-            <div class="panel">
-              <p class="note" style="margin-bottom:16px">Extracting requirements and source citations…</p>
-              <div class="req-skeleton">
-                <div class="req-skel-row"></div>
-                <div class="req-skel-row req-skel-row--short"></div>
-                <div class="req-skel-row"></div>
-                <div class="req-skel-row req-skel-row--short"></div>
-                <div class="req-skel-row"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- State: active -->
-          <div id="req-state-active" class="req-state">
-            <div id="req-fields-container"></div>
-            <div class="panel req-approval-footer">
-              <div class="req-approval-inner">
-                <div>
-                  <p style="margin:0;font-size:.875rem;color:var(--text-body)">Ready to approve? All required fields must have values.</p>
-                  <p id="req-missing-note" class="note" style="margin-top:4px;color:#c2410c;display:none"></p>
+            <!-- STATE: empty -->
+            <div data-state-panel="empty">
+              <div class="req-empty-well">
+                <div class="req-empty-icon" aria-hidden="true">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 </div>
-                <button class="primary-btn" id="req-approve-btn" disabled>Approve reviewed requirements</button>
+                <h3>No requirements extracted yet</h3>
+                <p>Upload proposal documents in Tender Intake, then run AI extraction to populate this review panel.</p>
+                <button class="primary-btn" disabled aria-disabled="true">Run extraction</button>
+                <p class="note" style="margin-top:0">Upload documents in Tender Intake to enable extraction.</p>
+              </div>
+            </div>
+
+            <!-- STATE: loading -->
+            <div data-state-panel="loading">
+              <div class="panel">
+                <p class="loading">Extracting requirements and source citations…</p>
+                <div class="req-skeleton-list" aria-busy="true" aria-label="Loading requirements">
+                  <div class="req-skeleton-row"><div class="skel skel-label"></div><div class="skel skel-value"></div><div class="skel" style="width:64px"></div></div>
+                  <div class="req-skeleton-row"><div class="skel skel-label"></div><div class="skel skel-value skel-value--md"></div><div class="skel" style="width:64px"></div></div>
+                  <div class="req-skeleton-row"><div class="skel skel-label"></div><div class="skel skel-value skel-value--sm"></div><div class="skel" style="width:64px"></div></div>
+                  <div class="req-skeleton-row"><div class="skel skel-label"></div><div class="skel skel-value"></div><div class="skel" style="width:64px"></div></div>
+                  <div class="req-skeleton-row"><div class="skel skel-label"></div><div class="skel skel-value skel-value--md"></div><div class="skel" style="width:64px"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STATE: active -->
+            <div data-state-panel="active">
+              <div class="req-active-layout" id="req-active-layout">
+                <div class="req-fields-panel panel">
+                  <div class="req-fields-header">
+                    <h3>Extracted Requirements</h3>
+                    <span class="req-summary-chip">14 fields · <span class="req-low-count">3 low confidence</span></span>
+                  </div>
+                  <div id="req-field-rows" class="req-field-rows" role="list" aria-label="Requirement fields"></div>
+                  <div class="req-approval-footer">
+                    <button class="primary-btn" id="req-approve-btn">Approve reviewed requirements</button>
+                  </div>
+                </div>
+                <aside class="req-source-drawer" id="source-drawer" role="dialog" aria-modal="true" aria-label="Source evidence" aria-hidden="true">
+                  <div class="req-drawer-header">
+                    <h4>Source Evidence</h4>
+                    <button class="req-drawer-close" id="source-drawer-close" aria-label="Close source evidence drawer">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                  <div class="req-drawer-body" id="source-drawer-body"></div>
+                </aside>
+              </div>
+            </div>
+
+            <!-- STATE: error -->
+            <div data-state-panel="error">
+              <div class="panel">
+                <div class="req-error-banner" role="alert">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <div>
+                    <strong>Extraction failed</strong>
+                    <p class="req-error-msg">ERR_TIMEOUT: AI extraction timed out after 30 s. Previously extracted fields preserved below.</p>
+                  </div>
+                </div>
+                <div id="req-error-preserved-rows" class="req-field-rows req-field-rows--readonly"></div>
+                <div class="action-row" style="margin-top:14px">
+                  <button class="primary-btn" id="req-retry-btn">Retry extraction</button>
+                  <button class="secondary-btn">Check uploaded files</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- STATE: locked -->
+            <div data-state-panel="locked">
+              <div class="req-active-layout">
+                <div class="req-fields-panel panel">
+                  <div class="req-fields-header">
+                    <h3>Extracted Requirements</h3>
+                    <span class="chip ok">Approved</span>
+                  </div>
+                  <div id="req-locked-rows" class="req-field-rows req-field-rows--readonly" role="list" aria-label="Approved requirement fields"></div>
+                  <div class="req-approval-footer req-approval-footer--locked">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <p>Requirements approved by <strong>Alex Morgan</strong> on <strong>May 14, 2026</strong>. Return for changes to unlock.</p>
+                    <button class="secondary-btn" id="req-return-btn">Return for changes</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- State: error -->
-          <div id="req-state-error" class="req-state" style="display:none">
-            <div class="panel" style="border:1px solid #fca5a5;background:#fef2f2;padding:20px">
-              <p style="margin:0 0 4px;font-weight:600;color:#dc2626">Extraction failed</p>
-              <p id="req-error-msg" class="note" style="color:#dc2626;margin:0 0 16px"></p>
-              <div class="action-row" style="margin-top:0">
-                <button class="secondary-btn req-extract-cta">Retry extraction</button>
-                <button class="secondary-btn" id="req-check-files-btn">Check uploaded files</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- State: locked (approved) -->
-          <div id="req-state-locked" class="req-state" style="display:none">
-            <div id="req-locked-fields-container"></div>
-            <div class="panel req-approval-footer req-locked-footer">
-              <div class="req-approval-inner">
-                <p id="req-locked-label" style="margin:0;font-size:.875rem;color:var(--text-body)"></p>
-                <button class="secondary-btn" id="req-return-btn">Return for changes</button>
-              </div>
-            </div>
+          <div class="req-snackbar" id="req-snackbar" role="status" aria-live="polite" hidden>
+            <span id="req-snackbar-msg">Field deleted</span>
+            <button class="req-snackbar-undo" id="req-snackbar-undo">Undo</button>
           </div>
         </section>
 
         <!-- ════════════════════════════════════════════════════════
-             STAGE 4 — Concept Selection  [ELIA-1353 implementation]
+             STAGE 4 — Concept Selection
         ════════════════════════════════════════════════════════════ -->
-        <section class="stage-content" data-content="concepts" id="stage-concepts">
+        <section class="stage-content" data-content="concepts">
           <div class="stage-topbar">
             <div>
               <h2>Concept Selection</h2>
               <p>Review AI-generated concepts and select one for costing</p>
             </div>
             <div class="action-row" style="margin-top:0">
-              <button class="secondary-btn" id="concept-regen-btn" style="display:none">Regenerate concepts</button>
+              <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text-subtle)">Dev state:
+                <select id="concept-state-dev" class="filter-select" aria-label="Dev: switch concept state" style="height:28px;font-size:.78rem">
+                  <option value="active">Active</option>
+                  <option value="empty">Empty</option>
+                  <option value="loading">Loading</option>
+                  <option value="selected">Selected</option>
+                  <option value="error">Error</option>
+                  <option value="approved">Approved</option>
+                </select>
+              </label>
             </div>
           </div>
 
-          <!-- State: empty -->
-          <div id="concept-state-empty" class="concept-state" style="display:none">
-            <div class="panel" style="text-align:center;padding:48px 24px">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom:16px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <p style="margin:0 0 16px;color:var(--text-subtle)">Approve requirements in Stage 3 first, then generate concept options.</p>
-              <button class="primary-btn" id="concept-generate-cta">Generate concepts</button>
-            </div>
-          </div>
+          <div id="concept-panel" data-concept-state="active">
 
-          <!-- State: loading (skeleton respects prefers-reduced-motion) -->
-          <div id="concept-state-loading" class="concept-state" style="display:none" role="status" aria-live="polite" aria-label="Generating concepts">
-            <div class="panel-grid concepts-grid" aria-hidden="true">
-              <div class="panel concept-card"><div class="concept-thumb concept-skel-thumb"></div><div class="concept-body"><div class="concept-skel-line"></div><div class="concept-skel-line concept-skel-line--short"></div><div class="concept-skel-line concept-skel-line--short"></div></div></div>
-              <div class="panel concept-card"><div class="concept-thumb concept-skel-thumb"></div><div class="concept-body"><div class="concept-skel-line"></div><div class="concept-skel-line concept-skel-line--short"></div><div class="concept-skel-line concept-skel-line--short"></div></div></div>
-              <div class="panel concept-card"><div class="concept-thumb concept-skel-thumb"></div><div class="concept-body"><div class="concept-skel-line"></div><div class="concept-skel-line concept-skel-line--short"></div><div class="concept-skel-line concept-skel-line--short"></div></div></div>
+            <!-- STATE: empty -->
+            <div data-state-panel="empty">
+              <div class="req-empty-well">
+                <div class="req-empty-icon" aria-hidden="true">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                </div>
+                <h3>No concepts generated yet</h3>
+                <p>Approve requirements in Stage 3 to unlock concept generation.</p>
+                <button class="primary-btn" id="concept-generate-btn">Generate concepts</button>
+              </div>
             </div>
-            <p class="note" style="text-align:center;margin-top:12px">Generating concept options…</p>
-          </div>
 
-          <!-- State: active / selected -->
-          <div id="concept-state-active" class="concept-state">
-            <div id="concept-cards-container" class="panel-grid concepts-grid" role="radiogroup" aria-label="Select a concept for costing"></div>
-            <div id="concept-approval-panel" class="panel" style="display:none">
-              <h3 style="margin-top:0">Approve selected concept</h3>
-              <div id="concept-approval-inner"></div>
+            <!-- STATE: loading (skeleton, reduced-motion safe) -->
+            <div data-state-panel="loading">
+              <div class="concept-grid-inner" aria-busy="true" aria-label="Generating concepts">
+                <div class="concept-skeleton-card"><div class="concept-skeleton-thumb"></div><div class="concept-skeleton-body"><div class="skel" style="width:70px"></div><div class="skel skel-value"></div><div class="skel skel-value--md"></div><div class="skel skel-value--sm"></div></div></div>
+                <div class="concept-skeleton-card"><div class="concept-skeleton-thumb" style="background:linear-gradient(135deg,#d1d5db,#9ca3af)"></div><div class="concept-skeleton-body"><div class="skel" style="width:70px"></div><div class="skel skel-value"></div><div class="skel skel-value--md"></div><div class="skel skel-value--sm"></div></div></div>
+                <div class="concept-skeleton-card"><div class="concept-skeleton-thumb" style="background:linear-gradient(135deg,#c4b5fd,#8b5cf6)"></div><div class="concept-skeleton-body"><div class="skel" style="width:70px"></div><div class="skel skel-value"></div><div class="skel skel-value--md"></div><div class="skel skel-value--sm"></div></div></div>
+              </div>
+              <p class="note" style="text-align:center;margin-top:12px">Generating concept options…</p>
             </div>
-          </div>
 
-          <!-- State: approved (locked) -->
-          <div id="concept-state-approved" class="concept-state" style="display:none">
-            <div id="concept-approved-cards" class="panel-grid concepts-grid"></div>
-            <div class="panel req-approval-footer req-locked-footer">
-              <div class="req-approval-inner">
-                <p id="concept-locked-label" style="margin:0;font-size:.875rem;color:var(--text-body)"></p>
-                <button class="secondary-btn" id="concept-revision-btn">Create revision</button>
+            <!-- STATES: active / selected / error / approved (shared card grid) -->
+            <div data-state-panel="cards">
+              <div class="concept-error-banner req-error-banner" role="alert">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <div>
+                  <strong>Concept generation paused</strong>
+                  <p class="req-error-msg">ERR_API: Generation service unavailable. Existing concepts preserved.</p>
+                  <div class="action-row" style="margin-top:8px">
+                    <button class="primary-btn" id="concept-retry-btn" style="height:28px;font-size:.8rem">Retry generation</button>
+                    <button class="secondary-btn" style="height:28px;font-size:.8rem" id="concept-guidance-btn">Provide guidance</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="concept-cards-layout" id="concept-cards-layout">
+                <div>
+                  <div class="concept-grid-inner" id="concept-card-grid" role="radiogroup" aria-label="Select a concept"></div>
+                  <div class="concept-approved-footer">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <span>Concept approved by <strong>Alex Morgan</strong> on <strong>May 14, 2026</strong>. Create a revision to replace.</span>
+                    </div>
+                    <button class="secondary-btn" id="concept-revision-btn">Create revision</button>
+                  </div>
+                </div>
+                <aside class="concept-approval-panel" id="concept-approval-panel" aria-label="Concept approval">
+                  <div>
+                    <h4 style="margin:0 0 4px">Approve Concept</h4>
+                    <p style="margin:0;font-size:.82rem;color:var(--text-subtle)">Selected: <strong id="concept-selected-name">—</strong></p>
+                  </div>
+                  <label style="display:grid;gap:5px;font-size:.84rem;font-weight:500">Reviewer<input type="text" value="Alex Morgan" readonly style="background:var(--surface-2)" /></label>
+                  <label style="display:grid;gap:5px;font-size:.84rem;font-weight:500">Notes (optional)<textarea id="concept-approval-notes" rows="3" placeholder="Add notes for this concept selection…" style="resize:vertical"></textarea></label>
+                  <p style="margin:0;font-size:.78rem;color:var(--text-subtle);display:flex;align-items:center;gap:5px">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Draft — pending approval
+                  </p>
+                  <div style="display:grid;gap:6px">
+                    <button class="primary-btn" id="concept-approve-btn" style="justify-content:center">Approve concept for costing</button>
+                    <button class="secondary-btn" id="concept-reject-open-btn" style="justify-content:center">Reject concept…</button>
+                    <button class="secondary-btn" id="concept-regen-open-btn" style="justify-content:center">Regenerate with guidance…</button>
+                  </div>
+                </aside>
               </div>
             </div>
           </div>
 
-          <!-- State: error -->
-          <div id="concept-state-error" class="concept-state" style="display:none">
-            <div class="panel" style="border:1px solid #fca5a5;background:#fef2f2;padding:20px">
-              <p style="margin:0 0 4px;font-weight:600;color:#dc2626">Concept generation paused</p>
-              <p id="concept-error-msg" class="note" style="color:#dc2626;margin:0 0 16px"></p>
-              <div class="action-row" style="margin-top:0">
-                <button class="secondary-btn" id="concept-retry-btn">Retry generation</button>
-                <button class="secondary-btn" id="concept-guidance-btn">Provide guidance</button>
+          <!-- Regenerate modal -->
+          <div class="regen-modal-overlay" id="regen-modal" role="dialog" aria-modal="true" aria-label="Regenerate concepts" hidden>
+            <div class="regen-modal">
+              <h4>Regenerate Concepts</h4>
+              <div class="regen-warning" id="regen-warning" hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Generating new concepts will replace the current approved concept.</span>
+              </div>
+              <label style="display:grid;gap:6px;font-size:.86rem;font-weight:500">Guidance for regeneration<textarea id="regen-guidance-input" rows="3" placeholder="e.g. Keep concept premium but reduce scenic complexity by 20%…" style="resize:vertical"></textarea></label>
+              <div class="action-row" style="margin-top:0;justify-content:flex-end">
+                <button class="secondary-btn" id="regen-cancel-btn">Cancel</button>
+                <button class="primary-btn" id="regen-confirm-btn">Confirm and regenerate</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reject concept modal -->
+          <div class="reject-modal-overlay" id="reject-modal" role="dialog" aria-modal="true" aria-label="Reject concept" hidden>
+            <div class="reject-modal">
+              <h4>Reject Concept</h4>
+              <p style="margin:0;font-size:.84rem;color:var(--text-subtle)">Provide a reason. The card will be preserved with the reason shown.</p>
+              <label style="display:grid;gap:6px;font-size:.86rem;font-weight:500">Reason <span style="color:#dc2626" aria-hidden="true">*</span><textarea id="reject-reason-input" rows="3" placeholder="e.g. Over budget, scenic complexity too high…" style="resize:vertical" aria-required="true"></textarea></label>
+              <div class="action-row" style="margin-top:0;justify-content:flex-end">
+                <button class="secondary-btn" id="reject-cancel-btn">Cancel</button>
+                <button class="primary-btn" id="reject-confirm-btn" disabled aria-disabled="true">Confirm reject</button>
               </div>
             </div>
           </div>
@@ -1268,6 +1298,458 @@
 
     <script src="workflow.js"></script>
     <script>
+    /* ── Stage 3 & 4 — RequirementReviewPanel + ConceptSelectionPanel ── */
+    (function () {
+      /* ── Stub data (matches TRD §4 shapes; swap to real API) ────── */
+      var MOCK_REQS = [
+        { id:'r1', section:'Venue & Logistics',     label:'Attendance Target',      value:'1,200 pax',                                             confidence:'high',   sources:[{doc:'Tender_Scope_v4.pdf',       page:3, excerpt:'"Minimum attendance capacity of 1,200 delegates required."',                         conf:0.97}] },
+        { id:'r2', section:'Venue & Logistics',     label:'Venue Type',             value:'Arena + breakout halls',                                confidence:'high',   sources:[{doc:'Tender_Scope_v4.pdf',       page:4, excerpt:'"Venue must include main arena with adjoining breakout hall capacity."',             conf:0.93}] },
+        { id:'r3', section:'Technical Production',  label:'Main Stage Display',     value:'12m LED wall, min 40ft width',                          confidence:'high',   sources:[{doc:'Tender_Scope_v4.pdf',       page:7, excerpt:'"Main plenary requires immersive visual backdrop minimum 40ft width."',              conf:0.94}] },
+        { id:'r4', section:'Technical Production',  label:'Streaming',              value:'Dual-language stream to client portal and YouTube',     confidence:'medium', sources:[{doc:'Client_Budget_Email.msg',   page:1, excerpt:'"We need live streaming for remote participants in English and Mandarin."',           conf:0.81}] },
+        { id:'r5', section:'Program & Talent',      label:'Keynote Speakers',       value:'2 international keynote speakers',                       confidence:'medium', sources:[{doc:'Tender_Scope_v4.pdf',       page:5, excerpt:'"Two keynote addresses from global industry leaders required."',                    conf:0.78}] },
+        { id:'r6', section:'Budget & Commercials',  label:'Budget Ceiling',         value:'',                                                      confidence:'low',    sources:[] },
+        { id:'r7', section:'Budget & Commercials',  label:'Procurement Timeline',   value:'',                                                      confidence:'low',    sources:[] },
+      ];
+
+      var MOCK_CONCEPTS = [
+        { id:'ca', thumb:'a', label:'Future Forge',       fitScore:94, fitLevel:'high', tags:['Premium Build','Broadcast-First'], rationale:'Industrial-tech keynote arc with broadcast-first pacing. Maximises LED wall investment and streaming reach for remote audiences.', kbRefs:['APAC Summit 2025','Broadcast Kit v3'] },
+        { id:'cb', thumb:'b', label:'Community Nexus',    fitScore:71, fitLevel:'mid',  tags:['Value Build','Audience Participation'], rationale:'Audience participation and fan-zone emphasis. Interactive breakout zones maximise engagement within budget signals.',           kbRefs:['Fan Expo 2024','Activations Pack'] },
+        { id:'cc', thumb:'c', label:'Prestige Stagecraft',fitScore:68, fitLevel:'mid',  tags:['High Cost','Cinematic'], rationale:'Cinematic reveal sequence with elevated scenic design. Memorable approach but likely above current budget signals.',                         kbRefs:['Awards Gala 2025','Scenic Library'] },
+      ];
+
+      /* ════════════════ STAGE 3 — RequirementReviewPanel ════════════ */
+      var reqFields = MOCK_REQS.map(function(r){ return Object.assign({}, r, {deleted:false}); });
+      var pendingDeleteId = null;
+      var deleteTimer    = null;
+      var activeChip     = null;
+
+      var reqPanel       = document.getElementById('req-panel');
+      var reqFieldRowsEl = document.getElementById('req-field-rows');
+      var reqErrRowsEl   = document.getElementById('req-error-preserved-rows');
+      var reqLockRowsEl  = document.getElementById('req-locked-rows');
+      var srcDrawer      = document.getElementById('source-drawer');
+      var srcDrawerBody  = document.getElementById('source-drawer-body');
+      var srcDrawerClose = document.getElementById('source-drawer-close');
+      var snackbar       = document.getElementById('req-snackbar');
+      var snackbarMsg    = document.getElementById('req-snackbar-msg');
+      var snackbarUndo   = document.getElementById('req-snackbar-undo');
+      var reqApprovBtn   = document.getElementById('req-approve-btn');
+      var reqRetryBtn    = document.getElementById('req-retry-btn');
+      var reqReturnBtn   = document.getElementById('req-return-btn');
+      var reqStateDev    = document.getElementById('req-state-dev');
+      var reqLayout      = document.getElementById('req-active-layout');
+
+      function setReqState(s) {
+        if (reqPanel) reqPanel.dataset.reqState = s;
+        if (reqStateDev) reqStateDev.value = s;
+      }
+
+      function confBadge(c) {
+        var map = {high:'High',medium:'Medium',low:'Low'};
+        return '<span class="conf-badge conf--'+c+'">'+(map[c]||c)+'</span>';
+      }
+
+      function fieldRowHTML(f, ro) {
+        var val = ro
+          ? '<span class="req-field-value">'+(f.value||'<em style="color:var(--text-muted)">Not extracted</em>')+'</span>'
+          : '<span class="req-field-value" id="val-'+f.id+'" tabindex="0">'+(f.value||'<em style="color:var(--text-muted)">Not extracted</em>')+'</span>'
+            +'<input type="text" class="req-field-value-input" id="inp-'+f.id+'" value="'+f.value.replace(/"/g,'&quot;')+'" style="display:none" aria-label="Edit '+f.label+'" />';
+
+        var chips = f.sources.length
+          ? f.sources.map(function(s,i){ return '<button class="source-chip" data-fid="'+f.id+'" data-si="'+i+'" aria-label="View source: '+s.doc+'">'+s.doc+' p.'+s.page+'</button>'; }).join('')
+          : '<span style="font-size:.75rem;color:var(--text-muted)">No source</span>';
+
+        var actions = ro
+          ? '<div class="req-field-actions"><svg class="req-field-lock-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>'
+          : '<div class="req-field-actions">'
+              +'<button class="req-icon-btn" data-fedit="'+f.id+'" aria-label="Edit '+f.label+'" title="Edit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+              +'<button class="req-icon-btn req-icon-btn--delete" data-fdel="'+f.id+'" aria-label="Delete '+f.label+'" title="Delete"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'
+            +'</div>';
+
+        return '<div class="req-field-row" data-fid="'+f.id+'" role="listitem">'
+          +'<div class="req-field-main">'
+            +'<div class="req-field-section">'+f.section+'</div>'
+            +'<div class="req-field-label">'+f.label+'</div>'
+            +val
+            +'<div class="req-field-meta">'+confBadge(f.confidence)+chips+'</div>'
+          +'</div>'
+          +actions
+        +'</div>';
+      }
+
+      function attachRowHandlers(container) {
+        /* Edit (pencil + click on value) */
+        container.querySelectorAll('[data-fedit]').forEach(function(btn) {
+          btn.addEventListener('click', function() { startEdit(container, btn.dataset.fedit); });
+        });
+        container.querySelectorAll('.req-field-value').forEach(function(el) {
+          el.addEventListener('click', function() {
+            var id = el.id.replace('val-','');
+            if (id) startEdit(container, id);
+          });
+        });
+        /* Delete */
+        container.querySelectorAll('[data-fdel]').forEach(function(btn) {
+          btn.addEventListener('click', function() { softDelete(container, btn.dataset.fdel); });
+        });
+        /* Source chips */
+        container.querySelectorAll('[data-fid][data-si]').forEach(function(chip) {
+          chip.addEventListener('click', function() {
+            var f = reqFields.find(function(x){ return x.id === chip.dataset.fid; });
+            if (f && f.sources[chip.dataset.si]) openDrawer(f, f.sources[chip.dataset.si], chip);
+          });
+        });
+      }
+
+      function startEdit(container, id) {
+        var row  = container.querySelector('[data-fid="'+id+'"]');
+        var val  = container.querySelector('#val-'+id);
+        var inp  = container.querySelector('#inp-'+id);
+        if (!row || !val || !inp) return;
+        row.classList.add('is-editing');
+        val.style.display = 'none';
+        inp.style.display = '';
+        inp.focus(); inp.select();
+        function commit() {
+          var f = reqFields.find(function(x){ return x.id === id; });
+          if (f) f.value = inp.value.trim();
+          val.textContent = inp.value.trim() || '';
+          val.style.display = ''; inp.style.display = 'none';
+          row.classList.remove('is-editing');
+        }
+        inp.addEventListener('blur', commit, {once:true});
+        inp.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+          if (e.key === 'Escape') {
+            var f = reqFields.find(function(x){ return x.id === id; });
+            inp.value = f ? f.value : ''; inp.blur();
+          }
+        });
+      }
+
+      function softDelete(container, id) {
+        var row = container.querySelector('[data-fid="'+id+'"]');
+        if (!row) return;
+        /* flush previous pending */
+        if (deleteTimer) { clearTimeout(deleteTimer); deleteTimer = null; }
+        if (pendingDeleteId) {
+          var prev = reqFields.find(function(x){ return x.id === pendingDeleteId; });
+          if (prev) prev.deleted = true;
+        }
+        var f = reqFields.find(function(x){ return x.id === id; });
+        if (!f) return;
+        pendingDeleteId = id;
+        row.classList.add('is-deleting');
+        if (snackbar) snackbar.hidden = false;
+        if (snackbarMsg) snackbarMsg.textContent = '"'+f.label+'" deleted';
+        deleteTimer = setTimeout(function() {
+          var ff = reqFields.find(function(x){ return x.id === id; });
+          if (ff) ff.deleted = true;
+          pendingDeleteId = null;
+          if (snackbar) snackbar.hidden = true;
+          renderActiveRows();
+          /* stub: DELETE /api/requirements/{id} */
+        }, 5000);
+      }
+
+      function renderRows(el, ro) {
+        if (!el) return;
+        el.innerHTML = reqFields.filter(function(f){ return !f.deleted; }).map(function(f){ return fieldRowHTML(f, ro); }).join('');
+        if (!ro) attachRowHandlers(el);
+      }
+
+      function renderActiveRows() { renderRows(reqFieldRowsEl, false); }
+      function renderLockedRows() { renderRows(reqLockRowsEl,  true);  }
+      function renderErrorRows()  { renderRows(reqErrRowsEl,   true);  }
+
+      function openDrawer(f, src, chip) {
+        if (!srcDrawer || !srcDrawerBody) return;
+        activeChip = chip;
+        srcDrawerBody.innerHTML =
+          '<div><div class="req-drawer-section">Field</div><div class="req-drawer-value">'+f.label+'</div></div>'
+          +'<div><div class="req-drawer-section">Document</div><div class="req-drawer-value">'+src.doc+'</div></div>'
+          +'<div><div class="req-drawer-section">Page</div><div class="req-drawer-value">'+src.page+'</div></div>'
+          +'<div><div class="req-drawer-section">Source Excerpt</div><blockquote class="req-drawer-excerpt">'+src.excerpt+'</blockquote></div>'
+          +'<div><div class="req-drawer-section">Confidence</div><div class="req-drawer-value">'+confBadge(f.confidence)+' '+Math.round(src.conf*100)+'%</div></div>';
+        srcDrawer.setAttribute('aria-hidden','false');
+        if (reqLayout) reqLayout.classList.add('drawer-open');
+        if (srcDrawerClose) srcDrawerClose.focus();
+      }
+
+      function closeDrawer() {
+        if (!srcDrawer) return;
+        srcDrawer.setAttribute('aria-hidden','true');
+        if (reqLayout) reqLayout.classList.remove('drawer-open');
+        if (activeChip) { activeChip.focus(); activeChip = null; }
+      }
+
+      /* focus trap in drawer */
+      if (srcDrawer) {
+        srcDrawer.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') { closeDrawer(); return; }
+          if (e.key === 'Tab') {
+            var ff = Array.from(srcDrawer.querySelectorAll('button,[href],input,[tabindex]:not([tabindex="-1"])'));
+            if (!ff.length) return;
+            if (e.shiftKey && document.activeElement === ff[0]) { e.preventDefault(); ff[ff.length-1].focus(); }
+            else if (!e.shiftKey && document.activeElement === ff[ff.length-1]) { e.preventDefault(); ff[0].focus(); }
+          }
+        });
+      }
+      if (srcDrawerClose) srcDrawerClose.addEventListener('click', closeDrawer);
+
+      /* undo snackbar */
+      if (snackbarUndo) {
+        snackbarUndo.addEventListener('click', function() {
+          if (deleteTimer) { clearTimeout(deleteTimer); deleteTimer = null; }
+          if (pendingDeleteId) {
+            var row = reqFieldRowsEl && reqFieldRowsEl.querySelector('[data-fid="'+pendingDeleteId+'"]');
+            if (row) row.classList.remove('is-deleting');
+            pendingDeleteId = null;
+          }
+          if (snackbar) snackbar.hidden = true;
+          /* stub: POST /api/requirements/{id}/restore */
+        });
+      }
+
+      /* approve */
+      if (reqApprovBtn) {
+        reqApprovBtn.addEventListener('click', function() {
+          /* stub: POST /api/requirements/approve */
+          setReqState('locked'); renderLockedRows();
+        });
+      }
+
+      /* retry */
+      if (reqRetryBtn) {
+        reqRetryBtn.addEventListener('click', function() {
+          setReqState('loading');
+          setTimeout(function() { setReqState('active'); renderActiveRows(); }, 2000);
+        });
+      }
+
+      /* return for changes */
+      if (reqReturnBtn) {
+        reqReturnBtn.addEventListener('click', function() {
+          /* stub: POST /api/requirements/unlock */
+          setReqState('active'); renderActiveRows();
+        });
+      }
+
+      /* dev switcher */
+      if (reqStateDev) {
+        reqStateDev.addEventListener('change', function() {
+          var s = reqStateDev.value;
+          setReqState(s);
+          if (s === 'active') renderActiveRows();
+          if (s === 'locked') renderLockedRows();
+          if (s === 'error')  renderErrorRows();
+        });
+      }
+
+      /* init */
+      renderActiveRows(); renderLockedRows(); renderErrorRows();
+
+
+      /* ════════════════ STAGE 4 — ConceptSelectionPanel ════════════ */
+      var cState = { selectedId:null, approvedId:null, rejections:{} };
+      var rejectTargetId = null;
+
+      var conceptPanel    = document.getElementById('concept-panel');
+      var conceptGrid     = document.getElementById('concept-card-grid');
+      var conceptLayout   = document.getElementById('concept-cards-layout');
+      var conceptSelName  = document.getElementById('concept-selected-name');
+      var conceptStateDev = document.getElementById('concept-state-dev');
+      var conceptApprPanel= document.getElementById('concept-approval-panel');
+      var conceptApprBtn  = document.getElementById('concept-approve-btn');
+      var conceptRejOpenB = document.getElementById('concept-reject-open-btn');
+      var conceptRegenBtn = document.getElementById('concept-regen-open-btn');
+      var conceptGenBtn   = document.getElementById('concept-generate-btn');
+      var conceptRetryBtn = document.getElementById('concept-retry-btn');
+      var conceptRevBtn   = document.getElementById('concept-revision-btn');
+      var conceptGuidBtn  = document.getElementById('concept-guidance-btn');
+
+      var regenModal      = document.getElementById('regen-modal');
+      var regenWarning    = document.getElementById('regen-warning');
+      var regenInput      = document.getElementById('regen-guidance-input');
+      var regenCancelBtn  = document.getElementById('regen-cancel-btn');
+      var regenConfirmBtn = document.getElementById('regen-confirm-btn');
+
+      var rejectModal     = document.getElementById('reject-modal');
+      var rejectInput     = document.getElementById('reject-reason-input');
+      var rejectCancelBtn = document.getElementById('reject-cancel-btn');
+      var rejectConfBtn   = document.getElementById('reject-confirm-btn');
+
+      function setConceptState(s) {
+        if (conceptPanel) conceptPanel.dataset.conceptState = s;
+        if (conceptStateDev) conceptStateDev.value = s;
+        if (conceptLayout) conceptLayout.classList.toggle('has-approval', s === 'selected');
+      }
+
+      var THUMBS = { a:'linear-gradient(135deg,#ff7a2b,#c2410c)', b:'linear-gradient(135deg,#0ea5e9,#2563eb)', c:'linear-gradient(135deg,#8b5cf6,#6d28d9)' };
+
+      function renderCards() {
+        if (!conceptGrid) return;
+        conceptGrid.innerHTML = MOCK_CONCEPTS.map(function(c) {
+          var sel  = cState.selectedId === c.id;
+          var rej  = cState.rejections[c.id];
+          var locked = !!cState.approvedId;
+          var fitLabel = c.fitLevel === 'high' ? 'High Fit' : 'Medium Fit';
+          return '<div class="concept-card-wrap'+(sel?' is-selected':'')+(rej?' is-rejected':'')+'" data-cid="'+c.id+'">'
+            +'<span class="concept-selected-badge" aria-hidden="'+(sel?'false':'true')+'">'
+              +'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg> Selected'
+            +'</span>'
+            +'<div class="concept-card-inner" tabindex="'+(locked?'-1':'0')+'" role="radio" aria-checked="'+sel+'" aria-label="'+c.label+'" data-select="'+c.id+'">'
+              +'<div style="background:'+THUMBS[c.thumb]+';height:110px;display:grid;place-items:center;border-radius:var(--radius) var(--radius) 0 0" aria-hidden="true">'
+                +'<span style="color:rgba(255,255,255,.9);font-size:1.4rem;font-weight:700">'+c.fitScore+'%</span>'
+              +'</div>'
+              +'<div class="concept-body">'
+                +'<div class="concept-fit-badge fit--'+c.fitLevel+'">'+fitLabel+'</div>'
+                +'<h3>'+c.label+'</h3>'
+                +'<p style="font-size:.875rem;color:var(--text-body);margin:4px 0 8px">'+c.rationale+'</p>'
+                +'<div class="tags">'+c.tags.map(function(t){ return '<span>'+t+'</span>'; }).join('')+'</div>'
+                +'<p class="note" style="margin-top:6px">KB refs: '+c.kbRefs.join(', ')+'</p>'
+                +(!locked?'<div class="concept-card-actions"><button class="secondary-btn" data-reject="'+c.id+'" style="height:28px;font-size:.8rem">Reject…</button></div>':'')
+              +'</div>'
+            +'</div>'
+            +(rej?'<div class="concept-reject-reason"><strong>Rejected:</strong> '+rej+'</div>':'')
+          +'</div>';
+        }).join('');
+
+        /* wire card click */
+        conceptGrid.querySelectorAll('[data-select]').forEach(function(el) {
+          el.addEventListener('click', function() { selectConcept(el.dataset.select); });
+          el.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectConcept(el.dataset.select); }
+          });
+        });
+        /* wire reject buttons */
+        conceptGrid.querySelectorAll('[data-reject]').forEach(function(btn) {
+          btn.addEventListener('click', function(e) { e.stopPropagation(); openRejectModal(btn.dataset.reject); });
+        });
+      }
+
+      function selectConcept(id) {
+        if (cState.approvedId) return;
+        cState.selectedId = id;
+        setConceptState('selected');
+        var c = MOCK_CONCEPTS.find(function(x){ return x.id === id; });
+        if (conceptSelName) conceptSelName.textContent = c ? c.label : '—';
+        renderCards();
+        /* stub: POST /api/concepts/select */
+      }
+
+      if (conceptApprBtn) {
+        conceptApprBtn.addEventListener('click', function() {
+          if (!cState.selectedId) return;
+          cState.approvedId = cState.selectedId;
+          /* stub: POST /api/concepts/approve */
+          setConceptState('approved');
+          if (conceptLayout) conceptLayout.classList.remove('has-approval');
+          renderCards();
+        });
+      }
+
+      function openRejectModal(id) {
+        rejectTargetId = id;
+        if (rejectInput) rejectInput.value = '';
+        if (rejectConfBtn) { rejectConfBtn.disabled = true; rejectConfBtn.setAttribute('aria-disabled','true'); }
+        if (rejectModal) { rejectModal.hidden = false; rejectInput && rejectInput.focus(); }
+      }
+
+      if (conceptRejOpenB) conceptRejOpenB.addEventListener('click', function() { if (cState.selectedId) openRejectModal(cState.selectedId); });
+
+      if (rejectInput) {
+        rejectInput.addEventListener('input', function() {
+          var ok = rejectInput.value.trim().length > 0;
+          if (rejectConfBtn) { rejectConfBtn.disabled = !ok; rejectConfBtn.setAttribute('aria-disabled', String(!ok)); }
+        });
+      }
+
+      if (rejectCancelBtn) rejectCancelBtn.addEventListener('click', function() { if (rejectModal) rejectModal.hidden = true; });
+      if (rejectModal) {
+        rejectModal.addEventListener('click', function(e) { if (e.target === rejectModal) rejectModal.hidden = true; });
+        rejectModal.addEventListener('keydown', function(e) { if (e.key === 'Escape') rejectModal.hidden = true; });
+      }
+
+      if (rejectConfBtn) {
+        rejectConfBtn.addEventListener('click', function() {
+          if (!rejectTargetId) return;
+          cState.rejections[rejectTargetId] = rejectInput ? rejectInput.value.trim() : '';
+          if (cState.selectedId === rejectTargetId) { cState.selectedId = null; setConceptState('active'); }
+          if (rejectModal) rejectModal.hidden = true;
+          renderCards();
+          /* stub: POST /api/concepts/{id}/reject */
+        });
+      }
+
+      function openRegenModal() {
+        if (regenWarning) regenWarning.hidden = !cState.approvedId;
+        if (regenInput) regenInput.value = '';
+        if (regenModal) { regenModal.hidden = false; regenInput && regenInput.focus(); }
+      }
+
+      if (conceptRegenBtn) conceptRegenBtn.addEventListener('click', openRegenModal);
+      if (conceptGuidBtn)  conceptGuidBtn.addEventListener('click', openRegenModal);
+
+      if (regenCancelBtn) regenCancelBtn.addEventListener('click', function() { if (regenModal) regenModal.hidden = true; });
+      if (regenModal) {
+        regenModal.addEventListener('click', function(e) { if (e.target === regenModal) regenModal.hidden = true; });
+        regenModal.addEventListener('keydown', function(e) { if (e.key === 'Escape') regenModal.hidden = true; });
+      }
+
+      if (regenConfirmBtn) {
+        regenConfirmBtn.addEventListener('click', function() {
+          if (regenModal) regenModal.hidden = true;
+          cState.selectedId = null; cState.approvedId = null;
+          setConceptState('loading');
+          /* stub: POST /api/concepts/regenerate */
+          setTimeout(function() { setConceptState('active'); renderCards(); }, 2000);
+        });
+      }
+
+      if (conceptGenBtn) {
+        conceptGenBtn.addEventListener('click', function() {
+          setConceptState('loading');
+          setTimeout(function() { setConceptState('active'); renderCards(); }, 2000);
+        });
+      }
+
+      if (conceptRetryBtn) {
+        conceptRetryBtn.addEventListener('click', function() {
+          setConceptState('loading');
+          setTimeout(function() { setConceptState('active'); renderCards(); }, 1500);
+        });
+      }
+
+      if (conceptRevBtn) {
+        conceptRevBtn.addEventListener('click', function() {
+          cState.approvedId = null; cState.selectedId = null;
+          setConceptState('loading');
+          setTimeout(function() { setConceptState('active'); renderCards(); }, 1500);
+        });
+      }
+
+      /* dev switcher */
+      if (conceptStateDev) {
+        conceptStateDev.addEventListener('change', function() {
+          var v = conceptStateDev.value;
+          if (v === 'selected') {
+            cState.selectedId = 'ca'; cState.approvedId = null;
+            if (conceptSelName) conceptSelName.textContent = 'Future Forge';
+          } else if (v === 'approved') {
+            cState.selectedId = 'ca'; cState.approvedId = 'ca';
+          } else {
+            cState.selectedId = null; cState.approvedId = null;
+          }
+          setConceptState(v); renderCards();
+        });
+      }
+
+      /* init */
+      renderCards();
+    })();
+    </script>
+    <script>
       (function () {
         const tabs = document.querySelectorAll('.tab');
         const contents = document.querySelectorAll('.stage-content');
@@ -1543,5 +2025,32 @@
         syncAdminEmptyStates(document);
       })();
     </script>
+
+    <!-- Auth overlay — shown by AuthGate when session is unauthenticated -->
+    <div id="auth-overlay" class="auth-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div class="auth-card">
+        <div class="auth-logo" aria-hidden="true">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="36" height="36" rx="10" fill="var(--orange)"/>
+            <path d="M10 26 L18 10 L26 26" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <path d="M13 21 L23 21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h1 id="auth-title" class="auth-heading">ElitezEvents</h1>
+        <p class="auth-sub">Sign in to your workspace</p>
+        <form id="auth-form" class="auth-form" novalidate>
+          <div class="auth-field">
+            <label for="auth-email" class="auth-label">Email</label>
+            <input id="auth-email" type="email" class="auth-input" autocomplete="username email" placeholder="you@elitez.co" required />
+          </div>
+          <div class="auth-field">
+            <label for="auth-password" class="auth-label">Password</label>
+            <input id="auth-password" type="password" class="auth-input" autocomplete="current-password" placeholder="••••••••" required />
+          </div>
+          <div id="auth-error" class="auth-error" hidden role="alert"></div>
+          <button type="submit" class="auth-submit primary-btn">Sign in</button>
+        </form>
+      </div>
+    </div>
   </body>
 </html>

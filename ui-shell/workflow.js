@@ -20,65 +20,238 @@ function syncAdminEmptyStates(documentRef) {
   });
 }
 
-/* ── Mock API stubs ────────────────────────────────────────────── */
-/* All API calls are stubbed — swap these for real fetch() when backend is ready */
+/* ── Auth state ────────────────────────────────────────────────── */
+let _currentUser = null;  // { email: string }
+let _currentProposalId = null;
 
-const MOCK_REQUIREMENTS = {
-  proposalId: 'demo-001',
-  sections: [
-    {
-      sectionId: 's1',
-      name: 'Venue & Logistics',
-      fields: [
-        { fieldId: 'f1', label: 'Venue Capacity', value: '1,200 pax', confidence: 0.92, missingFieldSeverity: 'required', sourceRefs: [{ document: 'Tender_Scope_v4.pdf', page: 3, excerpt: 'Attendance target approximately 1,200 PAX minimum for main plenary', confidence: 0.92 }], isEdited: false },
-        { fieldId: 'f2', label: 'Venue Type', value: 'Arena + breakout halls', confidence: 0.87, missingFieldSeverity: 'optional', sourceRefs: [{ document: 'Tender_Scope_v4.pdf', page: 3, excerpt: 'Venue preference: indoor arena with flexible breakout spaces for workshops', confidence: 0.87 }], isEdited: false },
-        { fieldId: 'f3', label: 'Event Date', value: '2026-08-12', confidence: 0.95, missingFieldSeverity: 'required', sourceRefs: [{ document: 'Client_Budget_Email.msg', page: 1, excerpt: 'Event confirmed for 12 August 2026, no changes expected', confidence: 0.95 }], isEdited: false },
-      ]
-    },
-    {
-      sectionId: 's2',
-      name: 'Technical Production',
-      fields: [
-        { fieldId: 'f4', label: 'LED Wall', value: 'Main stage 12m LED wall, dual language overlay', confidence: 0.86, missingFieldSeverity: 'required', sourceRefs: [{ document: 'Tender_Scope_v4.pdf', page: 7, excerpt: 'Main plenary requires immersive visual backdrop minimum 40ft width with broadcast capability', confidence: 0.86 }], isEdited: false },
-        { fieldId: 'f5', label: 'Streaming', value: 'Dual-language stream to client portal and YouTube', confidence: 0.79, missingFieldSeverity: 'optional', sourceRefs: [{ document: 'Tender_Scope_v4.pdf', page: 8, excerpt: 'Live stream required for remote attendees, Arabic and English', confidence: 0.79 }], isEdited: false },
-      ]
-    },
-    {
-      sectionId: 's3',
-      name: 'Budget & Commercials',
-      fields: [
-        { fieldId: 'f6', label: 'Budget Ceiling', value: null, confidence: 0, missingFieldSeverity: 'required', sourceRefs: [], isEdited: false },
-        { fieldId: 'f7', label: 'Procurement Timeline', value: null, confidence: 0.55, missingFieldSeverity: 'optional', sourceRefs: [{ document: 'Client_Budget_Email.msg', page: 2, excerpt: 'Procurement decision expected by end of June 2026', confidence: 0.55 }], isEdited: false },
-      ]
+/* ── API fetch wrapper with loading/error state support ─────────── */
+async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options,
+  });
+  if (!res.ok) {
+    const err = new Error(`HTTP ${res.status}`);
+    err.status = res.status;
+    try { err.body = await res.json(); } catch (_) {}
+    throw err;
+  }
+  return res.json();
+}
+
+function showFetchError(containerId, message, onRetry) {
+  let el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div class="fetch-error-banner visible">
+    <span><strong>Error:</strong> ${escapeHtml(message)}</span>
+    ${onRetry ? '<button class="fetch-error-retry">Retry</button>' : ''}
+  </div>`;
+  if (onRetry) {
+    const btn = el.querySelector('.fetch-error-retry');
+    if (btn) btn.onclick = onRetry;
+  }
+}
+
+function showSkeleton(containerId, rows = 3) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div class="fetch-skeleton">${Array(rows).fill('<div class="fetch-skel-row"></div>').join('')}</div>`;
+}
+
+/* ── Auth gate (D5 — AC gate on page load) ──────────────────────── */
+const AuthGate = (function () {
+  function show() {
+    const overlay = document.getElementById('auth-overlay');
+    if (overlay) overlay.hidden = false;
+  }
+
+  function hide() {
+    const overlay = document.getElementById('auth-overlay');
+    if (overlay) overlay.hidden = true;
+  }
+
+  function updateUserDisplay(email) {
+    // Replace hard-coded 'Alex Morgan' / 'Good morning, Alex' with real identity
+    const nameEls = document.querySelectorAll('.nav-user-name, [data-user-name]');
+    nameEls.forEach(el => { el.textContent = email; });
+    const greetingEl = document.querySelector('[data-greeting-name]');
+    if (greetingEl) {
+      const local = email.split('@')[0];
+      greetingEl.textContent = `Good morning, ${local.charAt(0).toUpperCase() + local.slice(1)}`;
     }
-  ],
-  approval: null
-};
+    const avatarEls = document.querySelectorAll('.nav-avatar');
+    avatarEls.forEach(el => {
+      const initials = email.slice(0, 2).toUpperCase();
+      el.textContent = initials;
+    });
+    const roleEl = document.querySelector('.nav-user-role');
+    if (roleEl) roleEl.textContent = email;
+  }
 
-const MOCK_CONCEPTS = {
-  proposalId: 'demo-001',
-  concepts: [
-    { conceptId: 'c1', name: 'Future Forge', fitScore: 0.92, tags: ['Premium Build', 'Broadcast-First'], rationale: 'Industrial-tech keynote arc optimised for broadcast, maximises LED and production value within mid-tier budget constraints.', kbReferences: ['APAC Summit 2025', 'Broadcast Kit v3'], status: 'available', rejectedReason: null },
-    { conceptId: 'c2', name: 'Community Nexus', fitScore: 0.73, tags: ['Value Build', 'Audience-Led'], rationale: 'Audience participation emphasis with fan-zone activations, delivers strong engagement at lower overall production cost.', kbReferences: ['Fan Expo 2024', 'Activations Pack'], status: 'available', rejectedReason: null },
-    { conceptId: 'c3', name: 'Prestige Stagecraft', fitScore: 0.71, tags: ['High Cost', 'Cinematic'], rationale: 'Cinematic reveal sequence with elevated scenic design; best suited to premium-tier budget with extended load-in period.', kbReferences: ['Awards Gala 2025', 'Scenic Library'], status: 'available', rejectedReason: null },
-  ],
-  approval: null
-};
+  async function init() {
+    try {
+      const data = await apiFetch('/api/auth/me');
+      _currentUser = data;
+      updateUserDisplay(data.email);
+      hide();
+    } catch (err) {
+      if (err.status === 401) {
+        show();
+        _wireLoginForm();
+      }
+    }
+  }
 
-const mockApi = {
-  getRequirements: () => Promise.resolve(JSON.parse(JSON.stringify(MOCK_REQUIREMENTS))),
-  patchField: (proposalId, fieldId, value) => Promise.resolve({ fieldId, value }),
-  deleteField: (proposalId, fieldId) => Promise.resolve({ fieldId }),
-  restoreField: (proposalId, fieldId) => Promise.resolve({ fieldId }),
-  approveRequirements: (proposalId) => Promise.resolve({ approvedBy: 'Alex Morgan', approvedAt: new Date().toISOString() }),
-  runExtraction: (proposalId) => new Promise(r => setTimeout(() => r(JSON.parse(JSON.stringify(MOCK_REQUIREMENTS))), 1800)),
-  getConcepts: () => Promise.resolve(JSON.parse(JSON.stringify(MOCK_CONCEPTS))),
-  selectConcept: (proposalId, conceptId) => Promise.resolve({ conceptId }),
-  rejectConcept: (proposalId, conceptId, reason) => Promise.resolve({ conceptId, reason }),
-  approveConcept: (proposalId, conceptId) => Promise.resolve({ approvedBy: 'Alex Morgan', approvedAt: new Date().toISOString() }),
-  generateConcepts: (proposalId) => new Promise(r => setTimeout(() => r(JSON.parse(JSON.stringify(MOCK_CONCEPTS))), 2000)),
-  regenerateConcepts: (proposalId, guidance) => new Promise(r => setTimeout(() => r(JSON.parse(JSON.stringify(MOCK_CONCEPTS))), 2200)),
-};
+  function _wireLoginForm() {
+    const form = document.getElementById('auth-form');
+    const errorEl = document.getElementById('auth-error');
+    if (!form) return;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = (form.querySelector('#auth-email') || {}).value || '';
+      const password = (form.querySelector('#auth-password') || {}).value || '';
+      if (errorEl) errorEl.classList.remove('visible');
+      try {
+        const data = await apiFetch('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+        _currentUser = { email: data.email };
+        updateUserDisplay(data.email);
+        hide();
+        // Re-initialise panels now that we're authed
+        DashboardPanel.init();
+        RequirementReviewPanel.init();
+        ConceptSelectionPanel.init();
+      } catch (err) {
+        if (errorEl) {
+          errorEl.textContent = 'Invalid email or password.';
+          errorEl.classList.add('visible');
+        }
+      }
+    });
+  }
+
+  return { init, show, hide, updateUserDisplay };
+})();
+
+/* ── Dashboard panel (D4 — AC-01, AC-02) ────────────────────────── */
+const DashboardPanel = (function () {
+  let _page = 1;
+  let _total = 0;
+  let _perPage = 20;
+
+  function _statusClass(s) {
+    const map = { approved: 'status--approved', in_progress: 'status--review', draft: 'status--draft', exported: 'status--exported', archived: 'status--draft' };
+    return map[s] || 'status--draft';
+  }
+
+  function _stageLabel(s) {
+    const map = { tender_intake: 'Intake', requirement_review: 'Requirements', concept_selection: 'Concepts', costing_builder: 'Costing', proposal_studio: 'Studio', review_export: 'Export', complete: 'Complete' };
+    return map[s] || s;
+  }
+
+  async function load() {
+    const tbody = document.getElementById('proposals-tbody');
+    const countEl = document.getElementById('proposals-count');
+    if (!tbody) return;
+
+    showSkeleton('proposals-tbody', 5);
+
+    try {
+      const q = (document.getElementById('proposals-search') || {}).value || '';
+      const data = await apiFetch(`/api/proposals?page=${_page}&per_page=${_perPage}&q=${encodeURIComponent(q)}`);
+      _total = data.pagination.total;
+
+      if (countEl) countEl.textContent = _total;
+      _updatePagination(data.pagination);
+
+      if (!data.proposals.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:32px">No proposals yet. Create your first one.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.proposals.map(p => `
+        <tr>
+          <td><div class="proposal-name">${escapeHtml(p.title)}</div></td>
+          <td><span class="status-pill ${_statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
+          <td>${escapeHtml(_stageLabel(p.current_stage))}</td>
+          <td class="date-text">${new Date(p.created_at).toLocaleDateString()}</td>
+          <td class="date-text">${new Date(p.updated_at).toLocaleDateString()}</td>
+          <td class="row-actions">
+            <button class="action-btn" onclick="DashboardPanel.openProposal(${p.id})">Open</button>
+          </td>
+        </tr>`).join('');
+    } catch (err) {
+      tbody.innerHTML = '';
+      showFetchError('proposals-tbody', `Failed to load proposals: ${err.message}`, load);
+    }
+  }
+
+  function _updatePagination(pg) {
+    const info = document.getElementById('page-info');
+    const prevBtn = document.getElementById('page-prev');
+    const nextBtn = document.getElementById('page-next');
+    if (info) info.textContent = `Page ${pg.page} of ${pg.pages || 1} (${pg.total} total)`;
+    if (prevBtn) prevBtn.disabled = pg.page <= 1;
+    if (nextBtn) nextBtn.disabled = pg.page >= pg.pages;
+  }
+
+  function openProposal(id) {
+    _currentProposalId = id;
+    // Navigate to intake stage
+    const stages = document.querySelectorAll('[data-workflow-stage]');
+    const contents = document.querySelectorAll('[data-content]');
+    const tabs = document.querySelectorAll('[data-stage]');
+    setActiveStage('intake', tabs, contents, stages);
+  }
+
+  async function createProposal(title) {
+    try {
+      const data = await apiFetch('/api/proposals', {
+        method: 'POST',
+        body: JSON.stringify({ title: title || 'New Proposal' }),
+      });
+      _currentProposalId = data.id;
+      await load();
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  function init() {
+    load();
+
+    // Search
+    const searchEl = document.getElementById('proposals-search');
+    if (searchEl) {
+      let _t;
+      searchEl.addEventListener('input', () => {
+        clearTimeout(_t);
+        _t = setTimeout(() => { _page = 1; load(); }, 350);
+      });
+    }
+
+    // Pagination
+    const prevBtn = document.getElementById('page-prev');
+    const nextBtn = document.getElementById('page-next');
+    if (prevBtn) prevBtn.addEventListener('click', () => { if (_page > 1) { _page--; load(); } });
+    if (nextBtn) nextBtn.addEventListener('click', () => { _page++; load(); });
+
+    // New proposal button
+    const newBtn = document.querySelector('.new-proposal-btn, [data-new-proposal]');
+    if (newBtn) {
+      newBtn.addEventListener('click', () => {
+        const title = prompt('Proposal title:', 'New Proposal');
+        if (title) createProposal(title);
+      });
+    }
+  }
+
+  return { init, load, openProposal, createProposal };
+})();
 
 /* ── Confidence badge helper ───────────────────────────────────── */
 function confidenceBadge(score) {
@@ -248,12 +421,16 @@ function escapeHtml(str) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   Stage 3 — RequirementReviewPanel
+   Stage 3 — RequirementReviewPanel (D2 + D6 — AC-06/07/08)
 ══════════════════════════════════════════════════════════════ */
 const RequirementReviewPanel = (function () {
-  let _state = 'active'; // empty | loading | active | error | locked
-  let _data = null;      // live copy of MOCK_REQUIREMENTS
-  let _deletePending = {}; // fieldId -> { cancelTimeout, restoreCallback }
+  let _state = 'loading';
+  let _data = null;
+  let _deletePending = {};
+
+  function _proposalId() {
+    return _currentProposalId || 1;
+  }
 
   function _showState(name) {
     _state = name;
@@ -266,6 +443,21 @@ const RequirementReviewPanel = (function () {
   function _allFields() {
     if (!_data) return [];
     return _data.sections.flatMap(s => s.fields);
+  }
+
+  // Normalise API field shape to the UI field shape
+  function _normalise(apiField) {
+    return {
+      fieldId: String(apiField.id),
+      label: apiField.field_label || apiField.category || '',
+      value: apiField.content || null,
+      confidence: apiField.confidence || 0,
+      missingFieldSeverity: apiField.missing_field_severity || 'optional',
+      sourceRefs: apiField.source_refs || [],
+      isEdited: apiField.is_edited || false,
+      deletedAt: null,
+      deletedPendingUndo: false,
+    };
   }
 
   function _requiredMissingCount() {
@@ -282,7 +474,7 @@ const RequirementReviewPanel = (function () {
         <h3 class="req-section-title">${escapeHtml(section.name)}</h3>
         <div class="req-field-list">`;
       section.fields.forEach(field => {
-        if (field.deletedAt) return; // fully deleted, skip
+        if (field.deletedAt) return;
         const isPendingUndo = !!field.deletedPendingUndo;
         const conf = field.confidence > 0 ? confidenceBadge(field.confidence) : null;
         const hasSource = field.sourceRefs && field.sourceRefs.length > 0;
@@ -327,15 +519,12 @@ const RequirementReviewPanel = (function () {
   }
 
   function _wireFieldInteractions(container) {
-    // Edit button
     container.querySelectorAll('[data-edit-btn]').forEach(btn => {
       btn.addEventListener('click', () => _enterEdit(btn.dataset.editBtn));
     });
-    // Delete button
     container.querySelectorAll('[data-delete-btn]').forEach(btn => {
       btn.addEventListener('click', () => _softDelete(btn.dataset.deleteBtn));
     });
-    // Source chips
     container.querySelectorAll('[data-source-btn]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const field = _allFields().find(f => f.fieldId === btn.dataset.sourceBtn);
@@ -360,10 +549,7 @@ const RequirementReviewPanel = (function () {
     if (cancelBtn) cancelBtn.style.display = '';
     inputEl.focus();
 
-    const save = () => {
-      const newVal = inputEl.value.trim();
-      _saveField(fieldId, newVal);
-    };
+    const save = () => _saveField(fieldId, inputEl.value.trim());
     const cancel = () => {
       const field = _allFields().find(f => f.fieldId === fieldId);
       if (field && valueEl) { valueEl.textContent = field.value || 'No value extracted'; valueEl.style.display = ''; }
@@ -377,7 +563,6 @@ const RequirementReviewPanel = (function () {
     if (saveBtn) saveBtn.onclick = save;
     if (cancelBtn) cancelBtn.onclick = cancel;
     inputEl.onblur = (e) => {
-      // Don't save on blur if clicking save/cancel
       if (e.relatedTarget === saveBtn || e.relatedTarget === cancelBtn) return;
       save();
     };
@@ -393,7 +578,6 @@ const RequirementReviewPanel = (function () {
     const oldVal = field.value;
     field.value = newVal || null;
     field.isEdited = true;
-    // Optimistic update
     const valueEl = document.querySelector(`[data-value-display="${fieldId}"]`);
     const inputEl = document.querySelector(`[data-field-input="${fieldId}"]`);
     const editBtn = document.querySelector(`[data-edit-btn="${fieldId}"]`);
@@ -406,7 +590,6 @@ const RequirementReviewPanel = (function () {
     if (deleteBtn) deleteBtn.style.display = '';
     if (saveBtn) saveBtn.style.display = 'none';
     if (cancelBtn) cancelBtn.style.display = 'none';
-    // Add edited chip if not already there
     const row = document.querySelector(`[data-field-id="${fieldId}"]`);
     if (row && !row.querySelector('.req-edited-chip')) {
       const badges = row.querySelector('.req-field-badges');
@@ -418,8 +601,11 @@ const RequirementReviewPanel = (function () {
       }
     }
     _updateApprovalFooter();
-    // Stub API call — revert on failure
-    mockApi.patchField(_data.proposalId, fieldId, newVal || null).catch(() => {
+    // Real API call (AC-07)
+    apiFetch(`/api/requirements/${fieldId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content: newVal || null }),
+    }).catch(() => {
       field.value = oldVal;
       if (valueEl) valueEl.textContent = oldVal || 'No value extracted';
       _showToast('Save failed — reverted to previous value.');
@@ -437,14 +623,16 @@ const RequirementReviewPanel = (function () {
       if (_deletePending[fieldId]) { clearTimeout(_deletePending[fieldId].timer); delete _deletePending[fieldId]; }
       _renderFields(document.getElementById('req-fields-container'), false);
       _updateApprovalFooter();
-      mockApi.restoreField(_data.proposalId, fieldId).catch(() => {});
+      // Restore via real API (AC-07)
+      apiFetch(`/api/requirements/${fieldId}/restore`, { method: 'POST' }).catch(() => {});
     });
     const timer = setTimeout(() => {
       field.deletedAt = new Date().toISOString();
       field.deletedPendingUndo = false;
       _renderFields(document.getElementById('req-fields-container'), false);
       _updateApprovalFooter();
-      mockApi.deleteField(_data.proposalId, fieldId).catch(() => {
+      // Delete via real API (AC-07)
+      apiFetch(`/api/requirements/${fieldId}`, { method: 'DELETE' }).catch(() => {
         field.deletedAt = null;
         _renderFields(document.getElementById('req-fields-container'), false);
         _updateApprovalFooter();
@@ -470,50 +658,82 @@ const RequirementReviewPanel = (function () {
     }
   }
 
-  function _showToast(msg) {
-    UndoSnackbar.show(msg, () => {});
+  function _showToast(msg) { UndoSnackbar.show(msg, () => {}); }
+
+  function _adaptApiData(apiData) {
+    // Transform API response into the UI's expected shape
+    return {
+      proposalId: apiData.proposal_id,
+      sections: (apiData.sections || []).map(s => ({
+        sectionId: s.section_id,
+        name: s.name,
+        fields: (s.fields || []).filter(f => !f.is_deleted).map(_normalise),
+      })),
+      approval: apiData.approved_by ? { approvedBy: apiData.approved_by, approvedAt: apiData.approved_at } : null,
+    };
   }
 
   function init() {
-    mockApi.getRequirements().then(data => {
-      _data = data;
-      _showState('active');
-      _renderFields(document.getElementById('req-fields-container'), false);
-      _updateApprovalFooter();
-    });
-
-    // Run extraction CTA
-    document.querySelectorAll('.req-extract-cta').forEach(btn => {
-      btn.addEventListener('click', () => {
-        _showState('loading');
-        mockApi.runExtraction('demo-001').then(data => {
-          _data = data;
+    _showState('loading');
+    const pid = _proposalId();
+    apiFetch(`/api/proposals/${pid}/requirements`)
+      .then(apiData => {
+        _data = _adaptApiData(apiData);
+        if (_data.approval) {
+          _showState('locked');
+          _renderFields(document.getElementById('req-locked-fields-container'), true);
+          const lockedLabel = document.getElementById('req-locked-label');
+          if (lockedLabel) lockedLabel.textContent = `Requirements approved by ${_data.approval.approvedBy} on ${new Date(_data.approval.approvedAt).toLocaleDateString()}. Return for changes to unlock.`;
+        } else if (!_data.sections.length) {
+          _showState('empty');
+        } else {
           _showState('active');
           _renderFields(document.getElementById('req-fields-container'), false);
           _updateApprovalFooter();
-        }).catch(() => {
-          _showState('error');
-          const errMsg = document.getElementById('req-error-msg');
-          if (errMsg) errMsg.textContent = 'Extraction service returned an error. Check uploaded documents and retry.';
-        });
+        }
+      })
+      .catch(() => {
+        _showState('empty');  // treat as no data yet
+      });
+
+    // Run extraction CTA (AC-05)
+    document.querySelectorAll('.req-extract-cta').forEach(btn => {
+      btn.addEventListener('click', () => {
+        _showState('loading');
+        apiFetch(`/api/proposals/${_proposalId()}/tender/extract`, { method: 'POST' })
+          .then(apiData => {
+            _data = _adaptApiData(apiData);
+            _showState('active');
+            _renderFields(document.getElementById('req-fields-container'), false);
+            _updateApprovalFooter();
+          }).catch(() => {
+            _showState('error');
+            const errMsg = document.getElementById('req-error-msg');
+            if (errMsg) errMsg.textContent = 'Extraction service returned an error. Check uploaded documents and retry.';
+          });
       });
     });
 
-    // Approve button
+    // Approve button (AC-08)
     const approveBtn = document.getElementById('req-approve-btn');
     if (approveBtn) {
       approveBtn.addEventListener('click', () => {
         approveBtn.disabled = true;
-        mockApi.approveRequirements('demo-001').then(result => {
-          if (_data) _data.approval = result;
-          _showState('locked');
-          _renderFields(document.getElementById('req-locked-fields-container'), true);
-          const lockedLabel = document.getElementById('req-locked-label');
-          if (lockedLabel) lockedLabel.textContent = `Requirements approved by ${result.approvedBy} on ${new Date(result.approvedAt).toLocaleDateString()}.  Return for changes to unlock.`;
-        }).catch(() => {
-          approveBtn.disabled = false;
-          _showToast('Approval failed — please try again.');
-        });
+        apiFetch(`/api/proposals/${_proposalId()}/requirements/approve`, { method: 'POST' })
+          .then(result => {
+            if (_data) _data.approval = { approvedBy: result.approved_by, approvedAt: result.approved_at };
+            _showState('locked');
+            _renderFields(document.getElementById('req-locked-fields-container'), true);
+            const lockedLabel = document.getElementById('req-locked-label');
+            if (lockedLabel) lockedLabel.textContent = `Requirements approved by ${result.approved_by} on ${new Date(result.approved_at).toLocaleDateString()}. Return for changes to unlock.`;
+          }).catch((err) => {
+            approveBtn.disabled = false;
+            if (err.body && err.body.error === 'missing_required_fields') {
+              _showToast(`${err.body.count} required field(s) must be filled before approving.`);
+            } else {
+              _showToast('Approval failed — please try again.');
+            }
+          });
       });
     }
 
@@ -533,11 +753,13 @@ const RequirementReviewPanel = (function () {
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   Stage 4 — ConceptSelectionPanel
+   Stage 4 — ConceptSelectionPanel (D2+D3+D6 — AC-09/10/11)
 ══════════════════════════════════════════════════════════════ */
 const ConceptSelectionPanel = (function () {
-  let _state = 'active';
+  let _state = 'loading';
   let _data = null;
+
+  function _proposalId() { return _currentProposalId || 1; }
 
   function _showState(name) {
     _state = name;
@@ -561,6 +783,23 @@ const ConceptSelectionPanel = (function () {
     '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
   ];
+
+  function _normaliseConceptData(apiData) {
+    return {
+      proposalId: apiData.proposal_id,
+      concepts: (apiData.concepts || []).map(c => ({
+        conceptId: String(c.concept_id),
+        name: c.name,
+        fitScore: c.fit_score,
+        tags: c.tags || [],
+        rationale: c.rationale,
+        kbReferences: c.kb_references || [],
+        status: c.status || 'available',
+        rejectedReason: c.rejected_reason || null,
+      })),
+      approval: null,
+    };
+  }
 
   function _renderCards(container, locked) {
     if (!container || !_data) return;
@@ -614,7 +853,6 @@ const ConceptSelectionPanel = (function () {
     container.querySelectorAll('[data-reject]').forEach(btn => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); _promptReject(btn.dataset.reject); });
     });
-    // Keyboard select on card
     container.querySelectorAll('[role="radio"]').forEach(card => {
       card.addEventListener('keydown', e => {
         if ((e.key === 'Enter' || e.key === ' ') && card.getAttribute('tabindex') !== null) {
@@ -627,14 +865,17 @@ const ConceptSelectionPanel = (function () {
 
   function _selectConcept(conceptId) {
     if (!_data) return;
-    // Clear prior selection
     _data.concepts.forEach(c => { if (c.status === 'selected') c.status = 'available'; });
     const concept = _data.concepts.find(c => c.conceptId === conceptId);
     if (!concept || concept.status === 'rejected') return;
     concept.status = 'selected';
     _renderCards(document.getElementById('concept-cards-container'), false);
     _showApprovalPanel(concept);
-    mockApi.selectConcept(_data.proposalId, conceptId).catch(() => {
+    // Real API (AC-10)
+    apiFetch(`/api/concepts/${conceptId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'selected' }),
+    }).catch(() => {
       concept.status = 'available';
       _renderCards(document.getElementById('concept-cards-container'), false);
       _hideApprovalPanel();
@@ -682,7 +923,11 @@ const ConceptSelectionPanel = (function () {
     concept.rejectedReason = reason;
     if (oldStatus === 'selected') _hideApprovalPanel();
     _renderCards(document.getElementById('concept-cards-container'), false);
-    mockApi.rejectConcept(_data.proposalId, conceptId, reason).catch(() => {
+    // Real API (AC-10/11)
+    apiFetch(`/api/concepts/${conceptId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'rejected', rejected_reason: reason }),
+    }).catch(() => {
       concept.status = oldStatus;
       concept.rejectedReason = null;
       _renderCards(document.getElementById('concept-cards-container'), false);
@@ -704,12 +949,16 @@ const ConceptSelectionPanel = (function () {
     if (approveBtn) {
       approveBtn.addEventListener('click', () => {
         approveBtn.disabled = true;
-        mockApi.approveConcept(_data.proposalId, concept.conceptId).then(result => {
-          if (_data) _data.approval = result;
+        // Real API (AC-10)
+        apiFetch(`/api/proposals/${_proposalId()}/concepts/approve`, {
+          method: 'POST',
+          body: JSON.stringify({ concept_id: parseInt(concept.conceptId) }),
+        }).then(result => {
+          if (_data) _data.approval = { approvedBy: result.approved_by, approvedAt: result.approved_at };
           _showState('approved');
           _renderCards(document.getElementById('concept-approved-cards'), true);
           const lockedLabel = document.getElementById('concept-locked-label');
-          if (lockedLabel) lockedLabel.textContent = `Concept approved by ${result.approvedBy} on ${new Date(result.approvedAt).toLocaleDateString()}. Create a revision to replace.`;
+          if (lockedLabel) lockedLabel.textContent = `Concept approved by ${result.approved_by} on ${new Date(result.approved_at).toLocaleDateString()}. Create a revision to replace.`;
         }).catch(() => {
           approveBtn.disabled = false;
         });
@@ -724,8 +973,12 @@ const ConceptSelectionPanel = (function () {
 
   function _doRegenerate(guidance) {
     _showState('loading');
-    mockApi.regenerateConcepts(_data ? _data.proposalId : 'demo-001', guidance).then(data => {
-      _data = data;
+    // Real API with LLM (AC-09)
+    apiFetch('/api/concepts/generate', {
+      method: 'POST',
+      body: JSON.stringify({ proposal_id: _proposalId(), guidance, regenerate: true }),
+    }).then(apiData => {
+      _data = _normaliseConceptData({ proposal_id: _proposalId(), concepts: apiData.concepts });
       _showState('active');
       _hideApprovalPanel();
       _renderCards(document.getElementById('concept-cards-container'), false);
@@ -737,24 +990,33 @@ const ConceptSelectionPanel = (function () {
   }
 
   function init() {
-    mockApi.getConcepts().then(data => {
-      _data = data;
-      _showState('active');
-      _renderCards(document.getElementById('concept-cards-container'), false);
-    });
+    _showState('loading');
+    // Load existing concepts from DB (AC-09)
+    apiFetch(`/api/proposals/${_proposalId()}/concepts`)
+      .then(apiData => {
+        _data = _normaliseConceptData(apiData);
+        if (!_data.concepts.length) {
+          _showState('empty');
+        } else {
+          _showState('active');
+          _renderCards(document.getElementById('concept-cards-container'), false);
+        }
+      })
+      .catch(() => _showState('empty'));
 
-    // Generate CTA (empty state)
+    // Generate CTA (empty state — calls LLM)
     const generateCta = document.getElementById('concept-generate-cta');
     if (generateCta) {
       generateCta.addEventListener('click', () => {
         _showState('loading');
-        mockApi.generateConcepts('demo-001').then(data => {
-          _data = data;
+        apiFetch('/api/concepts/generate', {
+          method: 'POST',
+          body: JSON.stringify({ proposal_id: _proposalId() }),
+        }).then(apiData => {
+          _data = _normaliseConceptData({ proposal_id: _proposalId(), concepts: apiData.concepts });
           _showState('active');
           _renderCards(document.getElementById('concept-cards-container'), false);
-        }).catch(() => {
-          _showState('error');
-        });
+        }).catch(() => _showState('error'));
       });
     }
 
@@ -780,7 +1042,7 @@ const ConceptSelectionPanel = (function () {
     if (revisionBtn) {
       revisionBtn.addEventListener('click', () => {
         if (_data) _data.approval = null;
-        _data.concepts.forEach(c => { c.status = 'available'; c.rejectedReason = null; });
+        if (_data) _data.concepts.forEach(c => { c.status = 'available'; c.rejectedReason = null; });
         _showState('active');
         _hideApprovalPanel();
         _renderCards(document.getElementById('concept-cards-container'), false);
@@ -798,13 +1060,22 @@ if (typeof window !== 'undefined') {
     syncAdminEmptyStates,
     RequirementReviewPanel,
     ConceptSelectionPanel,
+    DashboardPanel,
     SourceDrawer,
     RegenerateModal,
+    AuthGate,
   };
 
   document.addEventListener('DOMContentLoaded', function () {
-    RequirementReviewPanel.init();
-    ConceptSelectionPanel.init();
+    // Auth gate first — check session, show login overlay if needed
+    AuthGate.init().then(() => {
+      // These init after auth succeeds
+      DashboardPanel.init();
+      RequirementReviewPanel.init();
+      ConceptSelectionPanel.init();
+    }).catch(() => {
+      // Auth gate handles its own UI — error is already shown
+    });
 
     // Source drawer close
     const drawerClose = document.getElementById('source-drawer-close');
