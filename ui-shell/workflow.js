@@ -1053,6 +1053,481 @@ const ConceptSelectionPanel = (function () {
   return { init };
 })();
 
+/* ══════════════════════════════════════════════════════════════
+   Stage 5 — CostingPanel (D6 — AC-12/13/14/15)
+══════════════════════════════════════════════════════════════ */
+const CostingPanel = (function () {
+  let _items = [];
+  let _initialized = false;
+
+  function _pid() { return _currentProposalId || 1; }
+
+  function _fmt(val) {
+    const n = parseFloat(val);
+    return isNaN(n) ? '—' : '$' + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
+  function _statusPill(s) {
+    return s === 'priced'
+      ? '<span class="pill pill-ok">Priced</span>'
+      : '<span class="pill pill-alert">Needs Price</span>';
+  }
+
+  function _renderRows() {
+    const tbody = document.getElementById('costing-items-tbody');
+    if (!tbody) return;
+    if (!_items.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">No line items yet. Add one above.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = _items.map(item => `
+      <tr data-item-id="${item.id}">
+        <td>${escapeHtml(item.item_name)}</td>
+        <td>
+          <input class="costing-qty-input" data-item="${item.id}" data-field="quantity" type="number" min="0" step="0.01"
+            value="${item.quantity}" style="width:60px" aria-label="Quantity for ${escapeHtml(item.item_name)}" />
+        </td>
+        <td>
+          <input class="costing-cost-input" data-item="${item.id}" data-field="unit_cost" type="number" min="0" step="0.01"
+            value="${item.unit_cost}" style="width:80px" aria-label="Unit cost for ${escapeHtml(item.item_name)}" />
+        </td>
+        <td>${_fmt(item.line_total)}</td>
+        <td>${_statusPill(item.status)}</td>
+        <td class="table-actions">
+          <button class="secondary-btn" onclick="CostingPanel.deleteItem(${item.id})">Remove</button>
+        </td>
+      </tr>`).join('');
+    tbody.querySelectorAll('.costing-qty-input, .costing-cost-input').forEach(input => {
+      input.addEventListener('change', () => _patchItem(input.dataset.item, input.dataset.field, input.value));
+    });
+  }
+
+  async function _loadSummary() {
+    try {
+      const data = await apiFetch(`/api/proposals/${_pid()}/costing/summary`);
+      const subtotalEl = document.getElementById('costing-subtotal');
+      const countEl = document.getElementById('costing-item-count');
+      const missingEl = document.getElementById('costing-missing-count');
+      if (subtotalEl) subtotalEl.textContent = _fmt(data.subtotal);
+      if (countEl) countEl.textContent = data.item_count;
+      if (missingEl) missingEl.textContent = data.missing_count;
+    } catch (_) {}
+  }
+
+  async function _loadVersionHistory() {
+    try {
+      const data = await apiFetch(`/api/proposals/${_pid()}/costing/version-history`);
+      const list = document.getElementById('costing-version-history');
+      if (!list) return;
+      if (!data.length) { list.innerHTML = '<li style="color:var(--ink-soft)">No versions yet.</li>'; return; }
+      list.innerHTML = data.map(v => `<li><span>${escapeHtml(v.version_label)}</span><span class="pill pill-ok">${new Date(v.created_at || v.snapped_at || '').toLocaleDateString()}</span></li>`).join('');
+      const verLabel = document.getElementById('costing-version-label');
+      if (verLabel && data.length) verLabel.textContent = data[data.length - 1].version_label;
+    } catch (_) {}
+  }
+
+  async function _patchItem(itemId, field, value) {
+    try {
+      const body = { [field]: parseFloat(value) };
+      const result = await apiFetch(`/api/costing/items/${itemId}`, { method: 'PATCH', body: JSON.stringify(body) });
+      const item = _items.find(i => i.id === parseInt(itemId));
+      if (item) {
+        item[field] = parseFloat(value);
+        item.line_total = result.line_total;
+        item.status = result.status;
+      }
+      _renderRows();
+      _loadSummary();
+    } catch (err) {
+      const banner = document.getElementById('costing-result-banner');
+      if (banner) { banner.hidden = false; banner.innerHTML = `<p style="color:var(--danger)">Save failed: ${escapeHtml(err.message)}</p>`; }
+    }
+  }
+
+  async function deleteItem(itemId) {
+    if (!confirm('Remove this costing item?')) return;
+    try {
+      await apiFetch(`/api/costing/items/${itemId}`, { method: 'DELETE' });
+      _items = _items.filter(i => i.id !== itemId);
+      _renderRows();
+      _loadSummary();
+    } catch (err) {
+      const banner = document.getElementById('costing-result-banner');
+      if (banner) { banner.hidden = false; banner.innerHTML = `<p style="color:var(--danger)">Delete failed.</p>`; }
+    }
+  }
+
+  async function load() {
+    const tbody = document.getElementById('costing-items-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">Loading…</td></tr>';
+    try {
+      const data = await apiFetch(`/api/proposals/${_pid()}/costing/items`);
+      _items = data.items || data;
+      _renderRows();
+      _loadSummary();
+      _loadVersionHistory();
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger);padding:16px">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  function init() {
+    if (_initialized) return;
+    _initialized = true;
+    load();
+
+    const addBtn = document.querySelector('[data-costing-add]');
+    if (addBtn) {
+      addBtn.addEventListener('click', async () => {
+        const name = prompt('Item name:');
+        if (!name) return;
+        try {
+          await apiFetch('/api/costing/items', {
+            method: 'POST',
+            body: JSON.stringify({ proposal_id: _pid(), item_name: name, quantity: 1, unit_cost: 0 }),
+          });
+          load();
+        } catch (err) {
+          alert('Failed to add item: ' + err.message);
+        }
+      });
+    }
+
+    document.querySelectorAll('[data-costing-version]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        try {
+          const result = await apiFetch(`/api/proposals/${_pid()}/costing/version`, { method: 'POST' });
+          const banner = document.getElementById('costing-result-banner');
+          if (banner) { banner.hidden = false; banner.innerHTML = `<p><strong>Version saved:</strong> ${escapeHtml(result.version_label)} — ${result.item_count} items, subtotal ${_fmt(result.subtotal)}</p>`; }
+          _loadVersionHistory();
+        } catch (err) {
+          alert('Snapshot failed: ' + err.message);
+        }
+      });
+    });
+  }
+
+  return { init, load, deleteItem };
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   Stage 6 — StudioPanel (D3+D6 — AC-16/17/18)
+══════════════════════════════════════════════════════════════ */
+const StudioPanel = (function () {
+  let _slides = [];
+  let _selectedSlide = null;
+  let _initialized = false;
+
+  function _pid() { return _currentProposalId || 1; }
+
+  function _renderSlides() {
+    const list = document.getElementById('studio-slides-list');
+    const actionsEl = document.getElementById('studio-slide-actions');
+    if (!list) return;
+    if (!_slides.length) {
+      list.innerHTML = '<li style="color:var(--ink-soft)">No slides yet.</li>';
+      if (actionsEl) actionsEl.hidden = false;
+      return;
+    }
+    list.innerHTML = _slides.map(s => {
+      const statusChip = s.status === 'ready'
+        ? '<span class="chip ok">Ready</span>'
+        : s.status === 'error'
+          ? '<span class="chip blocked">Error</span>'
+          : '<span class="chip review">Draft</span>';
+      const isSelected = _selectedSlide && _selectedSlide.id === s.id;
+      return `<li class="${isSelected ? 'selected-slide' : ''}" style="cursor:pointer;padding:6px 4px;border-radius:6px${isSelected ? ';background:var(--orange-tint)' : ''}"
+          data-slide-id="${s.id}" tabindex="0" role="button" aria-pressed="${isSelected}">
+        <span>${String(s.position).padStart(2,'0')} ${escapeHtml(s.title)}</span>${statusChip}
+      </li>`;
+    }).join('');
+    list.querySelectorAll('[data-slide-id]').forEach(li => {
+      li.addEventListener('click', () => _selectSlide(parseInt(li.dataset.slideId)));
+      li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _selectSlide(parseInt(li.dataset.slideId)); } });
+    });
+    if (actionsEl) actionsEl.hidden = false;
+  }
+
+  function _selectSlide(slideId) {
+    _selectedSlide = _slides.find(s => s.id === slideId) || null;
+    const preview = document.getElementById('studio-preview-content');
+    const regenActions = document.getElementById('studio-regen-actions');
+    if (preview && _selectedSlide) {
+      preview.innerHTML = `<p><strong>${escapeHtml(_selectedSlide.title)}</strong></p><p>${escapeHtml(_selectedSlide.content || 'No content yet.')}</p>`;
+      if (regenActions) regenActions.hidden = false;
+    }
+    _renderSlides();
+  }
+
+  async function load() {
+    const list = document.getElementById('studio-slides-list');
+    if (!list) return;
+    list.innerHTML = '<li style="color:var(--ink-soft)">Loading slides…</li>';
+    try {
+      const data = await apiFetch(`/api/proposals/${_pid()}/studio/slides`);
+      _slides = data.slides || data;
+      _renderSlides();
+    } catch (err) {
+      list.innerHTML = `<li style="color:var(--danger)">Failed to load slides: ${escapeHtml(err.message)}</li>`;
+    }
+  }
+
+  async function _regenerate(slide) {
+    const guidance = prompt(`Guidance for regenerating "${slide.title}" (leave blank for auto):`);
+    if (guidance === null) return;
+    const preview = document.getElementById('studio-preview-content');
+    if (preview) preview.innerHTML = '<p style="color:var(--ink-soft)">Regenerating with AI…</p>';
+    try {
+      const result = await apiFetch(`/api/studio/slides/${slide.id}/regenerate`, {
+        method: 'POST',
+        body: JSON.stringify({ guidance }),
+      });
+      slide.content = result.content;
+      slide.status = result.status;
+      if (preview) preview.innerHTML = `<p><strong>${escapeHtml(slide.title)}</strong></p><p>${escapeHtml(result.content || 'Regeneration failed.')}</p>`;
+      _renderSlides();
+    } catch (err) {
+      if (preview) preview.innerHTML = `<p style="color:var(--danger)">Regeneration failed: ${escapeHtml(err.message)}</p>`;
+    }
+  }
+
+  function init() {
+    if (_initialized) return;
+    _initialized = true;
+    load();
+
+    const regenBtn = document.getElementById('studio-regen-btn');
+    if (regenBtn) {
+      regenBtn.addEventListener('click', () => {
+        if (_selectedSlide) _regenerate(_selectedSlide);
+      });
+    }
+  }
+
+  return { init, load };
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   Stage 7 — ExportPanel (D6 — AC-19/20/21)
+══════════════════════════════════════════════════════════════ */
+const ExportPanel = (function () {
+  let _initialized = false;
+
+  function _pid() { return _currentProposalId || 1; }
+
+  const GATE_ICONS = {
+    pass: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="readiness-icon" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    fail: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="readiness-icon" style="color:var(--danger)" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  };
+
+  async function _loadGate() {
+    const gateList = document.getElementById('export-gate-list');
+    const createBtn = document.getElementById('export-create-draft-btn');
+    if (!gateList) return;
+    try {
+      const data = await apiFetch(`/api/proposals/${_pid()}/exports/drafts`);
+      const gates = data.gate_checks || [];
+      gateList.innerHTML = gates.length
+        ? gates.map(g => `<li class="readiness-item ${g.pass ? 'readiness--pass' : 'readiness--blocked'}">
+            ${GATE_ICONS[g.pass ? 'pass' : 'fail']}
+            <span class="readiness-label">${escapeHtml(g.label)}</span>
+            <span class="readiness-value">${g.pass ? 'Yes' : 'No'}</span>
+          </li>`).join('')
+        : '<li style="color:var(--ink-soft)">No gate checks available.</li>';
+      const allPass = gates.every(g => g.pass);
+      if (createBtn) createBtn.disabled = !allPass;
+      _renderDrafts(data.drafts || []);
+    } catch (err) {
+      if (gateList) gateList.innerHTML = `<li style="color:var(--danger)">Gate check failed: ${escapeHtml(err.message)}</li>`;
+    }
+  }
+
+  function _renderDrafts(drafts) {
+    const list = document.getElementById('export-drafts-list');
+    if (!list) return;
+    if (!drafts.length) { list.innerHTML = '<li style="color:var(--ink-soft)">No drafts yet.</li>'; return; }
+    list.innerHTML = drafts.map(d => `<li>
+      <span>${escapeHtml(d.parent_version || 'Draft')} — ${escapeHtml(d.artifact_type || 'Package')} — <span class="pill ${d.state === 'staged' ? 'pill-review' : 'pill-ok'}">${escapeHtml(d.state)}</span></span>
+      ${d.state === 'staged' ? `<button class="secondary-btn" style="margin-left:8px" onclick="ExportPanel.promoteDraft(${d.id})">Promote</button>` : ''}
+    </li>`).join('');
+  }
+
+  async function _createDraft() {
+    const btn = document.getElementById('export-create-draft-btn');
+    if (btn) btn.disabled = true;
+    try {
+      await apiFetch(`/api/proposals/${_pid()}/exports/drafts`, { method: 'POST' });
+      _loadGate();
+    } catch (err) {
+      const errEl = document.getElementById('export-gate-error');
+      if (errEl) { errEl.hidden = false; errEl.textContent = 'Draft creation failed: ' + err.message; }
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function promoteDraft(draftId) {
+    try {
+      await apiFetch(`/api/exports/drafts/${draftId}/promote`, { method: 'POST' });
+      _loadGate();
+    } catch (err) {
+      alert('Promote failed: ' + err.message);
+    }
+  }
+
+  async function _loadApprovals() {
+    const list = document.getElementById('export-approvals-list');
+    if (!list) return;
+    try {
+      const data = await apiFetch(`/api/proposals/${_pid()}/exports/drafts`);
+      const approvals = data.approvals || [];
+      if (!approvals.length) { list.innerHTML = '<li style="color:var(--ink-soft)">No approvals yet.</li>'; return; }
+      list.innerHTML = approvals.map(a => `<li>${escapeHtml(a.approver)} <span class="chip ${a.decision === 'approved' ? 'ok' : a.decision === 'rejected' ? 'blocked' : 'review'}">${escapeHtml(a.decision)}</span></li>`).join('');
+    } catch (_) {}
+  }
+
+  function init() {
+    if (_initialized) return;
+    _initialized = true;
+    _loadGate();
+    _loadApprovals();
+
+    const createBtn = document.getElementById('export-create-draft-btn');
+    if (createBtn) createBtn.addEventListener('click', _createDraft);
+
+    const approvalBtn = document.getElementById('export-request-approval-btn');
+    if (approvalBtn) {
+      approvalBtn.addEventListener('click', async () => {
+        try {
+          await apiFetch('/api/approvals', {
+            method: 'POST',
+            body: JSON.stringify({ proposal_id: _pid() }),
+          });
+          _loadApprovals();
+        } catch (err) {
+          alert('Approval request failed: ' + err.message);
+        }
+      });
+    }
+  }
+
+  return { init, promoteDraft };
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   Stage 8 — AdminPanel (D6 — AC-22/23/24)
+══════════════════════════════════════════════════════════════ */
+const AdminPanel = (function () {
+  let _initialized = false;
+
+  async function _loadGovernanceSummary() {
+    try {
+      const data = await apiFetch('/api/admin/governance/summary');
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      set('gov-kpi-pricing-count', data.pricing_sku_count ?? '—');
+      set('gov-kpi-assets-count', data.asset_count ?? '—');
+      set('gov-kpi-templates-count', data.template_count ?? '—');
+      set('gov-kpi-variance-count', data.variance_flag_count ?? '—');
+
+      const priceStaleEl = document.getElementById('gov-kpi-pricing-stale');
+      if (priceStaleEl) priceStaleEl.innerHTML = data.stale_pricing_count ? `<span class="pill pill-stale">${data.stale_pricing_count} stale</span>` : '';
+      const assetDupEl = document.getElementById('gov-kpi-assets-dup');
+      if (assetDupEl) assetDupEl.innerHTML = data.duplicate_asset_count ? `<span class="pill pill-alert">${data.duplicate_asset_count} duplicates</span>` : '';
+      const tmplInactiveEl = document.getElementById('gov-kpi-templates-inactive');
+      if (tmplInactiveEl) tmplInactiveEl.innerHTML = data.inactive_template_count ? `<span class="pill pill-alert">${data.inactive_template_count} inactive</span>` : '';
+      const varStatusEl = document.getElementById('gov-kpi-variance-status');
+      if (varStatusEl) varStatusEl.innerHTML = data.variance_flag_count > 0 ? '<span class="pill pill-alert">active</span>' : '<span class="pill pill-ok">clear</span>';
+
+      const guardrailEl = document.getElementById('gov-guardrail-summary');
+      if (guardrailEl) guardrailEl.textContent = `pricing variance ${data.variance_flag_count ?? 0} · stale ${data.stale_pricing_count ?? 0} · inactive templates ${data.inactive_template_count ?? 0}`;
+    } catch (_) {}
+  }
+
+  async function _loadPricing() {
+    const tbody = document.getElementById('admin-pricing-tbody');
+    if (!tbody) return;
+    try {
+      const data = await apiFetch('/api/admin/pricing');
+      const items = data.items || data;
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:20px">No pricing items.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(item => `
+        <tr data-pricing-id="${item.id}">
+          <td>${escapeHtml(item.item_name)}</td>
+          <td>${escapeHtml(item.unit || '—')}</td>
+          <td class="price-cell">
+            <span class="price-display" id="price-display-${item.id}">$${parseFloat(item.current_price || 0).toLocaleString()}</span>
+            <input class="price-input" id="price-input-${item.id}" type="text" value="${item.current_price || 0}"
+              style="display:none;width:80px" aria-label="Edit price for ${escapeHtml(item.item_name)}" />
+          </td>
+          <td>${item.updated_at ? new Date(item.updated_at).toLocaleDateString() : '—'}</td>
+          <td>
+            ${item.is_stale ? '<span class="pill pill-stale">Stale</span>' : ''}
+            ${item.has_variance_warning ? '<span class="pill pill-alert">Variance</span>' : ''}
+            <div class="action-row" style="margin-top:6px">
+              <button class="secondary-btn" onclick="AdminPanel.editPrice(${item.id})">Edit</button>
+              <button class="secondary-btn" id="price-save-${item.id}" style="display:none" onclick="AdminPanel.savePrice(${item.id})">Save</button>
+              <button class="secondary-btn" id="price-cancel-${item.id}" style="display:none" onclick="AdminPanel.cancelEdit(${item.id})">Cancel</button>
+            </div>
+          </td>
+        </tr>`).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--danger);padding:16px">Failed to load pricing: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  function editPrice(itemId) {
+    const display = document.getElementById(`price-display-${itemId}`);
+    const input = document.getElementById(`price-input-${itemId}`);
+    const saveBtn = document.getElementById(`price-save-${itemId}`);
+    const cancelBtn = document.getElementById(`price-cancel-${itemId}`);
+    if (display) display.style.display = 'none';
+    if (input) { input.style.display = ''; input.focus(); }
+    if (saveBtn) saveBtn.style.display = '';
+    if (cancelBtn) cancelBtn.style.display = '';
+  }
+
+  function cancelEdit(itemId) {
+    const display = document.getElementById(`price-display-${itemId}`);
+    const input = document.getElementById(`price-input-${itemId}`);
+    const saveBtn = document.getElementById(`price-save-${itemId}`);
+    const cancelBtn = document.getElementById(`price-cancel-${itemId}`);
+    if (display) display.style.display = '';
+    if (input) input.style.display = 'none';
+    if (saveBtn) saveBtn.style.display = 'none';
+    if (cancelBtn) cancelBtn.style.display = 'none';
+  }
+
+  async function savePrice(itemId) {
+    const input = document.getElementById(`price-input-${itemId}`);
+    const display = document.getElementById(`price-display-${itemId}`);
+    const newPrice = parseFloat((input || {}).value);
+    if (isNaN(newPrice)) { alert('Enter a valid price.'); return; }
+    try {
+      const result = await apiFetch(`/api/admin/pricing/${itemId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ current_price: newPrice }),
+      });
+      if (display) display.textContent = '$' + parseFloat(result.current_price).toLocaleString();
+      cancelEdit(itemId);
+      _loadGovernanceSummary();
+    } catch (err) {
+      alert('Save failed: ' + err.message);
+    }
+  }
+
+  function init() {
+    if (_initialized) return;
+    _initialized = true;
+    _loadGovernanceSummary();
+    _loadPricing();
+  }
+
+  return { init, editPrice, cancelEdit, savePrice };
+})();
+
 /* ── Bootstrap on DOMContentLoaded ────────────────────────────── */
 if (typeof window !== 'undefined') {
   window.ElitezWorkflow = {
@@ -1064,6 +1539,10 @@ if (typeof window !== 'undefined') {
     SourceDrawer,
     RegenerateModal,
     AuthGate,
+    CostingPanel,
+    StudioPanel,
+    ExportPanel,
+    AdminPanel,
   };
 
   document.addEventListener('DOMContentLoaded', function () {

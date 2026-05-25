@@ -658,89 +658,41 @@
                     <th>Unit Cost</th>
                     <th>Total</th>
                     <th>Status</th>
-                    <th>Source / Variance</th>
                     <th style="text-align:right">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>LED Wall 12m</td>
-                    <td>2 days</td>
-                    <td>$4,850</td>
-                    <td>$9,700</td>
-                    <td><span class="pill pill-ok">Priced</span></td>
-                    <td><span class="pill pill-ok">Contracted</span> <span class="pill">+2.1% var</span></td>
-                    <td class="table-actions">
-                      <button class="secondary-btn" data-costing-action="duplicate">Duplicate</button>
-                      <button class="secondary-btn" data-costing-action="edit">Override</button>
-                      <button class="secondary-btn" data-costing-action="delete">Remove</button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Broadcast Crew</td>
-                    <td>1 event</td>
-                    <td>$7,200</td>
-                    <td>$7,200</td>
-                    <td><span class="pill pill-ok">Priced</span></td>
-                    <td><span class="pill pill-ok">KB Rate</span> <span class="pill">0.0% var</span></td>
-                    <td class="table-actions">
-                      <button class="secondary-btn" data-costing-action="duplicate">Duplicate</button>
-                      <button class="secondary-btn" data-costing-action="edit">Override</button>
-                      <button class="secondary-btn" data-costing-action="delete">Remove</button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Talent Rider Add-ons</td>
-                    <td>1 package</td>
-                    <td>Missing</td>
-                    <td>Missing</td>
-                    <td><span class="pill pill-alert">Needs Price</span></td>
-                    <td><span class="pill pill-alert">No source</span> <span class="pill">Missing rate</span></td>
-                    <td class="table-actions">
-                      <button class="secondary-btn" data-costing-action="manual">Manual Entry</button>
-                      <button class="secondary-btn" data-costing-action="edit">Override</button>
-                      <button class="secondary-btn" data-costing-action="delete">Remove</button>
-                    </td>
-                  </tr>
+                <tbody id="costing-items-tbody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">Loading costing items…</td></tr>
                 </tbody>
               </table>
-              <div class="result-banner">
-                <p><strong>Missing item:</strong> Add catalog price for "Talent Rider Add-ons" or enable manual override.</p>
-              </div>
+              <div id="costing-result-banner" class="result-banner" hidden></div>
             </article>
           </div>
 
           <div class="panel-grid admin-stats-grid">
             <article class="panel">
               <h3>Subtotal</h3>
-              <p class="metric">$43,280</p>
+              <p class="metric" id="costing-subtotal">—</p>
               <p class="note">Based on priced lines only</p>
             </article>
             <article class="panel">
-              <h3>Markup</h3>
-              <p class="metric">22%</p>
-              <p class="note">Target margin: 17.8% · Gross: $52,800</p>
+              <h3>Items</h3>
+              <p class="metric" id="costing-item-count">—</p>
+              <p class="note"><span id="costing-missing-count">—</span> missing prices</p>
             </article>
             <article class="panel">
               <h3>Current Version</h3>
-              <p class="metric">Costing v3</p>
-              <p class="note">Updated 2026-05-15 14:22 UTC</p>
+              <p class="metric" id="costing-version-label">—</p>
+              <p class="note" id="costing-version-note">No snapshot yet</p>
             </article>
           </div>
 
           <div class="panel-grid">
             <article class="panel admin-panel-wide">
               <h3>Costing Version History</h3>
-              <ul class="summary-list">
-                <li><span>v3 — Draft Freeze</span><span class="pill pill-ok">Ready for Export</span></li>
-                <li><span>v2 — Post manual override cleanup</span><span class="pill pill-ok">Ready</span></li>
-                <li><span>v1 — Initial AI extraction</span><span class="pill pill-stale">Superseded</span></li>
+              <ul class="summary-list" id="costing-version-history">
+                <li style="color:var(--ink-soft)">No versions yet.</li>
               </ul>
-              <div class="action-row">
-                <button class="secondary-btn">Restore v2</button>
-                <button class="secondary-btn">Export v3 XLSX</button>
-                <button class="secondary-btn" data-costing-version>Create New Version</button>
-              </div>
             </article>
           </div>
         </section>
@@ -759,32 +711,23 @@
           <div class="panel-grid">
             <article class="panel">
               <h3>Slide Outline</h3>
-              <ul class="requirements-list">
-                <li><span>01 Executive Summary</span><span class="chip ok">Static</span></li>
-                <li><span>02 Event Vision</span><span class="chip review">Dynamic</span></li>
-                <li><span>03 Experience Design</span><span class="chip review">Generated</span></li>
-                <li><span>04 Budget &amp; Timeline</span><span class="chip blocked">Pending source</span></li>
+              <ul class="requirements-list" id="studio-slides-list">
+                <li style="color:var(--ink-soft)">Loading slides…</li>
               </ul>
-              <div class="action-row" style="margin-top: 10px">
-                <button class="secondary-btn">Reorder Slides</button>
-                <button class="secondary-btn">Remove Slide</button>
-                <button class="secondary-btn">Add Slide</button>
+              <div class="action-row" style="margin-top: 10px" id="studio-slide-actions" hidden>
+                <button class="secondary-btn" id="studio-add-slide-btn">Add Slide</button>
               </div>
             </article>
 
             <article class="panel">
               <h3>Preview Canvas</h3>
-              <div class="preview-canvas">
-                <div class="preview-stack">
-                  <p><strong>03 — Experience Design</strong></p>
-                  <p>Generated with AI. Tone: premium, broadcast-first, immersive.</p>
-                  <p class="note">Source of truth: concept deck + pricing catalog</p>
+              <div class="preview-canvas" id="studio-preview-canvas">
+                <div class="preview-stack" id="studio-preview-content">
+                  <p style="color:var(--ink-soft)">Select a slide to preview content.</p>
                 </div>
               </div>
-              <div class="action-row">
-                <button class="secondary-btn">Regenerate Section</button>
-                <button class="secondary-btn">Regenerate All</button>
-                <button class="secondary-btn">Remove Selected</button>
+              <div class="action-row" id="studio-regen-actions" hidden>
+                <button class="secondary-btn" id="studio-regen-btn">Regenerate Slide</button>
               </div>
             </article>
 
@@ -818,64 +761,32 @@
           <div class="panel-grid">
             <article class="panel">
               <h3>Readiness Checklist</h3>
-              <ul class="readiness-list">
-                <li class="readiness-item readiness--pass">
-                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                  <span class="readiness-label">Requirements approved</span>
-                  <span class="readiness-value">Yes</span>
-                </li>
-                <li class="readiness-item readiness--pass">
-                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                  <span class="readiness-label">Concept approved</span>
-                  <span class="readiness-value">Yes</span>
-                </li>
-                <li class="readiness-item readiness--pass">
-                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                  <span class="readiness-label">Costing complete</span>
-                  <span class="readiness-value">Yes</span>
-                </li>
-                <li class="readiness-item readiness--pass">
-                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                  <span class="readiness-label">Final approver selected</span>
-                  <span class="readiness-value">Yes</span>
-                </li>
-                <li class="readiness-item readiness--blocked">
-                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  <span class="readiness-label">Talent add-on source file</span>
-                  <span class="readiness-value">Blocked</span>
-                </li>
+              <ul class="readiness-list" id="export-gate-list">
+                <li style="color:var(--ink-soft)">Loading gate checks…</li>
               </ul>
+              <div class="action-row" style="margin-top:12px">
+                <button class="primary-btn" id="export-create-draft-btn" disabled>Create Export Draft</button>
+              </div>
+              <div id="export-gate-error" class="fetch-error-banner" hidden></div>
             </article>
 
             <article class="panel">
               <h3>Final Approval Handoff</h3>
-              <ul class="summary-list">
-                <li>Proposal Manager <span class="chip ok">Approved</span></li>
-                <li>Finance <span class="chip ok">Approved</span></li>
-                <li>Legal <span class="chip ok">Approved</span></li>
+              <ul class="summary-list" id="export-approvals-list">
+                <li style="color:var(--ink-soft)">No approvals requested yet.</li>
               </ul>
               <div class="action-row">
-                <button class="secondary-btn">Request Final Approval</button>
-                <button class="primary-btn">Handoff to Legal QA</button>
+                <button class="secondary-btn" id="export-request-approval-btn">Request Final Approval</button>
               </div>
             </article>
           </div>
 
           <div class="panel-grid">
             <article class="panel admin-panel-wide">
-              <h3>Export Package Summary</h3>
-              <ul class="summary-list">
-                <li>Draft ID: <strong>export_20260515_1422</strong></li>
-                <li>Files: <strong>proposal.pdf, deck.pptx, costing.csv, manifest.json</strong></li>
-                <li>Size: <strong>19.8 MB</strong></li>
-                <li>Generated: <strong>2026-05-15 14:22 UTC</strong></li>
-                <li>State: <span class="pill pill-review">Blocked by source quality</span></li>
+              <h3>Export Drafts</h3>
+              <ul class="summary-list" id="export-drafts-list">
+                <li style="color:var(--ink-soft)">No drafts yet.</li>
               </ul>
-              <div class="action-row">
-                <button class="secondary-btn">Download ZIP</button>
-                <button class="secondary-btn">Open Manifest</button>
-                <button class="secondary-btn">Retry Blocked Export</button>
-              </div>
             </article>
           </div>
 
@@ -972,30 +883,30 @@
           </div>
 
           <!-- Governance KPI strip -->
-          <div class="gov-kpi-strip">
+          <div class="gov-kpi-strip" id="admin-gov-kpi-strip">
             <div class="gov-kpi">
-              <div class="gov-kpi-value">18</div>
+              <div class="gov-kpi-value" id="gov-kpi-pricing-count">—</div>
               <div class="gov-kpi-label">Pricing SKUs</div>
-              <div class="gov-kpi-sub"><span class="pill pill-stale">3 stale</span></div>
+              <div class="gov-kpi-sub" id="gov-kpi-pricing-stale"></div>
             </div>
             <div class="gov-kpi">
-              <div class="gov-kpi-value">46</div>
+              <div class="gov-kpi-value" id="gov-kpi-assets-count">—</div>
               <div class="gov-kpi-label">KB Assets</div>
-              <div class="gov-kpi-sub"><span class="pill pill-alert">4 duplicates</span></div>
+              <div class="gov-kpi-sub" id="gov-kpi-assets-dup"></div>
             </div>
             <div class="gov-kpi">
-              <div class="gov-kpi-value">12</div>
+              <div class="gov-kpi-value" id="gov-kpi-templates-count">—</div>
               <div class="gov-kpi-label">Templates</div>
-              <div class="gov-kpi-sub"><span class="pill pill-alert">2 inactive</span></div>
+              <div class="gov-kpi-sub" id="gov-kpi-templates-inactive"></div>
             </div>
             <div class="gov-kpi">
-              <div class="gov-kpi-value">1</div>
+              <div class="gov-kpi-value" id="gov-kpi-variance-count">—</div>
               <div class="gov-kpi-label">Variance Flags</div>
-              <div class="gov-kpi-sub"><span class="pill pill-alert">active</span></div>
+              <div class="gov-kpi-sub" id="gov-kpi-variance-status"></div>
             </div>
             <div class="gov-state-cell">
               <p style="margin:0 0 6px;font-size:.82rem;font-weight:600;color:var(--text)">Guardrail Status</p>
-              <p style="margin:0;font-size:.8rem;color:var(--text-subtle)">pricing variance <span class="pill pill-alert">1 active</span> · stale <span class="pill pill-stale">2</span> · inactive <span class="pill pill-alert">2</span></p>
+              <p style="margin:0;font-size:.8rem;color:var(--text-subtle)" id="gov-guardrail-summary">Loading…</p>
               <div class="result-banner" id="admin-result-banner" style="margin-top:8px;display:none"><p></p></div>
             </div>
           </div>
@@ -1025,53 +936,8 @@
                     <th>Governance</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr>
-                    <td>LED Wall 12m</td>
-                    <td>per day</td>
-                    <td class="price-cell"><span class="price-display">$4,850</span><input class="price-input" type="text" value="4850" style="display:none;width:72px" aria-label="Edit price" /></td>
-                    <td>2026-03-02</td>
-                    <td>
-                      <span class="pill pill-stale">Stale</span> <span class="pill">tech</span>
-                      <div class="action-row" style="margin-top: 6px">
-                        <button class="secondary-btn" data-pricing-edit>Edit Price</button>
-                        <button class="secondary-btn pricing-save" data-pricing-save style="display:none">Save</button>
-                        <button class="secondary-btn pricing-cancel" data-pricing-cancel style="display:none">Cancel</button>
-                        <button class="secondary-btn" data-action="pricing-refresh">Refresh</button>
-                        <button class="secondary-btn" data-action="pricing-mark-variance">Mark Variance</button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Broadcast Crew</td>
-                    <td>per event</td>
-                    <td class="price-cell"><span class="price-display">$7,200</span><input class="price-input" type="text" value="7200" style="display:none;width:72px" aria-label="Edit price" /></td>
-                    <td>2026-05-12</td>
-                    <td>
-                      <span class="pill pill-ok">Healthy</span> <span class="pill">production</span>
-                      <div class="action-row" style="margin-top: 6px">
-                        <button class="secondary-btn" data-pricing-edit>Edit Price</button>
-                        <button class="secondary-btn pricing-save" data-pricing-save style="display:none">Save</button>
-                        <button class="secondary-btn pricing-cancel" data-pricing-cancel style="display:none">Cancel</button>
-                        <button class="secondary-btn" data-action="pricing-refresh">Refresh</button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Registration App</td>
-                    <td>license</td>
-                    <td class="price-cell"><span class="price-display">$1,900</span><input class="price-input" type="text" value="1900" style="display:none;width:72px" aria-label="Edit price" /></td>
-                    <td>2026-01-19</td>
-                    <td>
-                      <span class="pill pill-alert">Variance</span> <span class="pill">software</span>
-                      <div class="action-row" style="margin-top: 6px">
-                        <button class="secondary-btn" data-pricing-edit>Edit Price</button>
-                        <button class="secondary-btn pricing-save" data-pricing-save style="display:none">Save</button>
-                        <button class="secondary-btn pricing-cancel" data-pricing-cancel style="display:none">Cancel</button>
-                        <button class="secondary-btn" data-action="pricing-resolve">Resolve</button>
-                      </div>
-                    </td>
-                  </tr>
+                <tbody id="admin-pricing-tbody">
+                  <tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:20px">Loading pricing catalog…</td></tr>
                 </tbody>
               </table>
               <div class="empty-state" hidden>
@@ -1756,8 +1622,6 @@
         const railStages = document.querySelectorAll('[data-workflow-stage]');
         const { setActiveStage, syncAdminEmptyStates } = window.ElitezWorkflow;
 
-        const costingActions = document.querySelectorAll('[data-costing-action], [data-costing-add], [data-costing-version]');
-
         const showStatus = (message) => {
           let status = document.getElementById('workflow-status');
           if (!status) {
@@ -1803,22 +1667,6 @@
             showAdminResult(result.message, result.tone === 'error');
           }
         };
-
-        costingActions.forEach((action) => {
-          action.addEventListener('click', () => {
-            if (action.dataset.costingAction === 'duplicate') {
-              showStatus('Costing line duplicated, version state unchanged until snapshot is saved.');
-            } else if (action.dataset.costingAction === 'delete') {
-              showStatus('Costing line marked for deletion. Save to persist changes.');
-            } else if (action.dataset.costingAction === 'edit' || action.dataset.costingAction === 'manual') {
-              showStatus('Manual override applied to the selected line. Recompute totals.');
-            } else if (action.dataset.costingVersion || action.dataset.costingAdd) {
-              showStatus('Costing version snapshot created. Previous version moved to history.');
-            } else {
-              showStatus('Costing action queued.');
-            }
-          });
-        });
 
         const actionButtons = document.querySelectorAll(
           '.admin-action-panel .secondary-btn, .admin-surface .secondary-btn, .stage-content .secondary-btn, .stage-content .primary-btn, .stage-content [data-action]'
@@ -1913,11 +1761,20 @@
           });
         });
 
+        const _lazyInitStage = (stage) => {
+          const EW = window.ElitezWorkflow;
+          if (stage === 'costing' && EW.CostingPanel) EW.CostingPanel.init();
+          else if (stage === 'studio' && EW.StudioPanel) EW.StudioPanel.init();
+          else if (stage === 'export' && EW.ExportPanel) EW.ExportPanel.init();
+          else if (stage === 'admin' && EW.AdminPanel) EW.AdminPanel.init();
+        };
+
         tabs.forEach((tab) => {
           tab.addEventListener('click', () => {
             const stage = tab.dataset.stage;
             setActiveStage(stage, tabs, contents, railStages);
             syncAdminEmptyStates(document);
+            _lazyInitStage(stage);
           });
         });
 
@@ -2011,6 +1868,7 @@
           const activate = () => {
             setActiveStage(stage, tabs, contents, railStages);
             syncAdminEmptyStates(document);
+            _lazyInitStage(stage);
           };
           stageNode.addEventListener('click', activate);
           stageNode.addEventListener('keydown', (event) => {
