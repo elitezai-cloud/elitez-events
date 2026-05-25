@@ -84,6 +84,22 @@
             </li>
           </ol>
         </nav>
+
+        <!-- Active proposal progress -->
+        <div class="sidebar-progress" id="sidebar-progress">
+          <p class="sidebar-progress-label">Active Proposal</p>
+          <p class="sidebar-progress-name">D&amp;D Annual Night 2026</p>
+          <div class="sidebar-progress-bar-wrap">
+            <div class="sidebar-progress-bar" style="width:62%"></div>
+          </div>
+          <p class="sidebar-progress-pct">62% complete · Stage 5 of 8</p>
+        </div>
+
+        <!-- Help footer -->
+        <div class="sidebar-help">
+          <p class="sidebar-help-text">Need help getting started?</p>
+          <button class="sidebar-help-btn">View Onboarding Guide</button>
+        </div>
       </aside>
 
       <!-- ── Workspace ───────────────────────────────────────────── -->
@@ -525,27 +541,45 @@ Confidence: 0.94</pre>
 
           <div class="panel-grid concepts-grid">
             <article class="panel concept-card selected">
-              <h3>Concept A: Future Forge</h3>
-              <p style="font-size:.875rem;color:var(--text-body)">Industrial-tech keynote arc with broadcast-first pacing.</p>
-              <div class="tags"><span>High Fit</span><span>Premium Build</span></div>
-              <p class="note">KB refs: APAC Summit 2025, Broadcast Kit v3</p>
-              <div class="action-row"><button class="secondary-btn">Selected for Costing</button></div>
+              <div class="concept-thumb concept-thumb--a" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div class="concept-body">
+                <div class="concept-fit-badge fit--high">High Fit</div>
+                <h3>Concept A: Future Forge</h3>
+                <p style="font-size:.875rem;color:var(--text-body)">Industrial-tech keynote arc with broadcast-first pacing.</p>
+                <div class="tags"><span>Premium Build</span></div>
+                <p class="note">KB refs: APAC Summit 2025, Broadcast Kit v3</p>
+                <div class="action-row"><button class="primary-btn">Selected for Costing</button></div>
+              </div>
             </article>
 
             <article class="panel concept-card">
-              <h3>Concept B: Community Nexus</h3>
-              <p style="font-size:.875rem;color:var(--text-body)">Audience participation and fan-zone emphasis.</p>
-              <div class="tags"><span>Medium Fit</span><span>Value Build</span></div>
-              <p class="note">KB refs: Fan Expo 2024, Activations Pack</p>
-              <div class="action-row"><button class="secondary-btn">Select Concept</button></div>
+              <div class="concept-thumb concept-thumb--b" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div class="concept-body">
+                <div class="concept-fit-badge fit--mid">Medium Fit</div>
+                <h3>Concept B: Community Nexus</h3>
+                <p style="font-size:.875rem;color:var(--text-body)">Audience participation and fan-zone emphasis.</p>
+                <div class="tags"><span>Value Build</span></div>
+                <p class="note">KB refs: Fan Expo 2024, Activations Pack</p>
+                <div class="action-row"><button class="secondary-btn">Select Concept</button></div>
+              </div>
             </article>
 
             <article class="panel concept-card">
-              <h3>Concept C: Prestige Stagecraft</h3>
-              <p style="font-size:.875rem;color:var(--text-body)">Cinematic reveal sequence with elevated scenic design.</p>
-              <div class="tags"><span>Medium Fit</span><span>High Cost</span></div>
-              <p class="note">KB refs: Awards Gala 2025, Scenic Library</p>
-              <div class="action-row"><button class="secondary-btn">Select Concept</button></div>
+              <div class="concept-thumb concept-thumb--c" aria-hidden="true">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <div class="concept-body">
+                <div class="concept-fit-badge fit--mid">Medium Fit</div>
+                <h3>Concept C: Prestige Stagecraft</h3>
+                <p style="font-size:.875rem;color:var(--text-body)">Cinematic reveal sequence with elevated scenic design.</p>
+                <div class="tags"><span>High Cost</span></div>
+                <p class="note">KB refs: Awards Gala 2025, Scenic Library</p>
+                <div class="action-row"><button class="secondary-btn">Select Concept</button></div>
+              </div>
             </article>
           </div>
 
@@ -760,12 +794,32 @@ Confidence: 0.94</pre>
           <div class="panel-grid">
             <article class="panel">
               <h3>Readiness Checklist</h3>
-              <ul class="summary-list">
-                <li>Requirements approved <strong>Yes</strong></li>
-                <li>Concept approved <strong>Yes</strong></li>
-                <li>Costing complete <strong>Yes</strong></li>
-                <li>Final approver selected <strong>Yes</strong></li>
-                <li class="warn">Blocked: talent add-on still missing source file reference</li>
+              <ul class="readiness-list">
+                <li class="readiness-item readiness--pass">
+                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <span class="readiness-label">Requirements approved</span>
+                  <span class="readiness-value">Yes</span>
+                </li>
+                <li class="readiness-item readiness--pass">
+                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <span class="readiness-label">Concept approved</span>
+                  <span class="readiness-value">Yes</span>
+                </li>
+                <li class="readiness-item readiness--pass">
+                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <span class="readiness-label">Costing complete</span>
+                  <span class="readiness-value">Yes</span>
+                </li>
+                <li class="readiness-item readiness--pass">
+                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <span class="readiness-label">Final approver selected</span>
+                  <span class="readiness-value">Yes</span>
+                </li>
+                <li class="readiness-item readiness--blocked">
+                  <svg class="readiness-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span class="readiness-label">Talent add-on source file</span>
+                  <span class="readiness-value">Blocked</span>
+                </li>
               </ul>
             </article>
 
@@ -887,46 +941,51 @@ Confidence: 0.94</pre>
               <h2>Admin Governance</h2>
               <p>Pricing catalog, knowledge-base assets, templates, and governance signals</p>
             </div>
-          </div>
-
-          <div class="admin-quick-actions">
-            <div class="admin-action-panel">
-              <h3 style="margin:0 0 8px">Governance Actions</h3>
-              <p class="note" style="margin-top:0;margin-bottom:10px">Run checks before publishing edits to users or template packs.</p>
-              <div class="action-row" style="margin-top:0">
-                <button class="secondary-btn" data-action="run-duplicate-audit">Run Duplicate Audit</button>
-                <button class="secondary-btn" data-action="run-stale-scan">Refresh Stale Scan</button>
-                <button class="secondary-btn" data-action="publish-template-changes">Publish Template Changes</button>
-                <button class="secondary-btn" data-action="publish-kb-changes">Publish KB Asset Changes</button>
-              </div>
-              <div class="result-banner">
-                <p><strong>Last action result:</strong> duplicate audit completed (4 candidates), stale scan returned 2 stale assets.</p>
-              </div>
-            </div>
-            <div class="admin-state-banner">
-              <p><strong>Guardrail Status:</strong><br>pricing variance <span class="pill pill-alert">1 active</span> · stale items <span class="pill pill-stale">2 active</span> · inactive templates <span class="pill pill-alert">2 active</span></p>
+            <div class="action-row" style="margin-top:0">
+              <button class="secondary-btn" data-action="run-duplicate-audit">Run Duplicate Audit</button>
+              <button class="secondary-btn" data-action="run-stale-scan">Refresh Stale Scan</button>
             </div>
           </div>
 
-          <div class="panel-grid admin-stats-grid">
-            <article class="panel">
-              <h3>Pricing Integrity</h3>
-              <p class="metric">18 SKUs</p>
-              <p class="note">3 stale rates and 1 variance warning</p>
-            </article>
-            <article class="panel">
-              <h3>Knowledge Assets</h3>
-              <p class="metric">46 active</p>
-              <p class="note">4 duplicate candidates detected</p>
-            </article>
-            <article class="panel">
-              <h3>Template Health</h3>
-              <p class="metric">12 templates</p>
-              <p class="note">2 inactive templates require review</p>
-            </article>
+          <!-- Governance KPI strip -->
+          <div class="gov-kpi-strip">
+            <div class="gov-kpi">
+              <div class="gov-kpi-value">18</div>
+              <div class="gov-kpi-label">Pricing SKUs</div>
+              <div class="gov-kpi-sub"><span class="pill pill-stale">3 stale</span></div>
+            </div>
+            <div class="gov-kpi">
+              <div class="gov-kpi-value">46</div>
+              <div class="gov-kpi-label">KB Assets</div>
+              <div class="gov-kpi-sub"><span class="pill pill-alert">4 duplicates</span></div>
+            </div>
+            <div class="gov-kpi">
+              <div class="gov-kpi-value">12</div>
+              <div class="gov-kpi-label">Templates</div>
+              <div class="gov-kpi-sub"><span class="pill pill-alert">2 inactive</span></div>
+            </div>
+            <div class="gov-kpi">
+              <div class="gov-kpi-value">1</div>
+              <div class="gov-kpi-label">Variance Flags</div>
+              <div class="gov-kpi-sub"><span class="pill pill-alert">active</span></div>
+            </div>
+            <div class="gov-state-cell">
+              <p style="margin:0 0 6px;font-size:.82rem;font-weight:600;color:var(--text)">Guardrail Status</p>
+              <p style="margin:0;font-size:.8rem;color:var(--text-subtle)">pricing variance <span class="pill pill-alert">1 active</span> · stale <span class="pill pill-stale">2</span> · inactive <span class="pill pill-alert">2</span></p>
+              <div class="result-banner" id="admin-result-banner" style="margin-top:8px;display:none"><p></p></div>
+            </div>
           </div>
 
-          <div class="panel-grid">
+          <!-- Admin tab bar -->
+          <div class="admin-tab-bar" role="tablist" aria-label="Admin sections">
+            <button class="admin-tab active" data-admin-tab="pricing" role="tab" aria-selected="true" aria-controls="admin-panel-pricing">Pricing Catalog</button>
+            <button class="admin-tab" data-admin-tab="kb" role="tab" aria-selected="false" aria-controls="admin-panel-kb">Knowledge Base</button>
+            <button class="admin-tab" data-admin-tab="templates" role="tab" aria-selected="false" aria-controls="admin-panel-templates">Templates</button>
+            <button class="admin-tab" data-admin-tab="govtable" role="tab" aria-selected="false" aria-controls="admin-panel-govtable">Governance Table</button>
+          </div>
+
+          <!-- Tab panel: Pricing Catalog -->
+          <div class="admin-tab-panel active" id="admin-panel-pricing" role="tabpanel">
             <article class="panel admin-surface" data-admin-surface data-admin-empty-toggle="tbody tr">
               <div class="admin-headline-row">
                 <h3>Pricing Catalog Manager</h3>
@@ -998,7 +1057,8 @@ Confidence: 0.94</pre>
             </article>
           </div>
 
-          <div class="panel-grid">
+          <!-- Tab panel: Knowledge Base -->
+          <div class="admin-tab-panel" id="admin-panel-kb" role="tabpanel" hidden>
             <article class="panel admin-surface" data-admin-surface data-admin-empty-toggle="li">
               <div class="admin-headline-row">
                 <h3>Knowledge-Base Asset Library</h3>
@@ -1044,7 +1104,10 @@ Confidence: 0.94</pre>
                 <button class="secondary-btn">Check Connector Feed</button>
               </div>
             </article>
+          </div>
 
+          <!-- Tab panel: Templates -->
+          <div class="admin-tab-panel" id="admin-panel-templates" role="tabpanel" hidden>
             <article class="panel admin-surface" data-admin-surface data-admin-empty-toggle="li">
               <div class="admin-headline-row">
                 <h3>Template Governance</h3>
@@ -1089,6 +1152,60 @@ Confidence: 0.94</pre>
                 <p>No archived templates require action.</p>
                 <button class="secondary-btn">Open Template Registry</button>
               </div>
+            </article>
+          </div>
+
+          <!-- Tab panel: Governance Table -->
+          <div class="admin-tab-panel" id="admin-panel-govtable" role="tabpanel" hidden>
+            <article class="panel">
+              <div class="admin-headline-row">
+                <h3>Governance Audit Log</h3>
+                <div class="action-row" style="margin-top:0">
+                  <button class="secondary-btn" data-action="publish-template-changes">Publish Template Changes</button>
+                  <button class="secondary-btn" data-action="publish-kb-changes">Publish KB Asset Changes</button>
+                </div>
+              </div>
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Scope</th>
+                    <th>Actor</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>2026-05-15 14:22 UTC</td>
+                    <td>Duplicate Audit</td>
+                    <td>Pricing + KB</td>
+                    <td>Alex Morgan</td>
+                    <td><span class="pill pill-ok">4 candidates found</span></td>
+                  </tr>
+                  <tr>
+                    <td>2026-05-14 10:05 UTC</td>
+                    <td>Stale Scan</td>
+                    <td>Pricing SKUs</td>
+                    <td>System</td>
+                    <td><span class="pill pill-stale">2 stale rates</span></td>
+                  </tr>
+                  <tr>
+                    <td>2026-05-13 09:31 UTC</td>
+                    <td>Template Publish</td>
+                    <td>Premium Pitch v4</td>
+                    <td>Taylor Chen</td>
+                    <td><span class="pill pill-ok">Success</span></td>
+                  </tr>
+                  <tr>
+                    <td>2026-05-12 16:44 UTC</td>
+                    <td>KB Publish</td>
+                    <td>APAC Summit 2025 Deck</td>
+                    <td>Rai Patel</td>
+                    <td><span class="pill pill-alert">Blocked — owner review</span></td>
+                  </tr>
+                </tbody>
+              </table>
             </article>
           </div>
         </section>
@@ -1145,7 +1262,11 @@ Confidence: 0.94</pre>
 
         const renderResult = (result) => {
           const toneClass = result.tone === 'error' ? 'result-banner--error' : '';
-          showStatus(`<span class="${toneClass}">${result.message}</span>`);
+          const html = `<span class="${toneClass}">${result.message}</span>`;
+          showStatus(html);
+          if (document.querySelector('.stage-content[data-content="admin"].active')) {
+            showAdminResult(result.message, result.tone === 'error');
+          }
         };
 
         costingActions.forEach((action) => {
@@ -1179,6 +1300,28 @@ Confidence: 0.94</pre>
             showStatus(`${labels} executed. Check result panel for state.`);
           });
         });
+
+        /* Admin tab bar */
+        const adminTabs = document.querySelectorAll('.admin-tab');
+        const adminPanels = document.querySelectorAll('.admin-tab-panel');
+        adminTabs.forEach((tab) => {
+          tab.addEventListener('click', () => {
+            adminTabs.forEach((t) => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+            adminPanels.forEach((p) => { p.hidden = true; });
+            tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
+            const panel = document.getElementById('admin-panel-' + tab.dataset.adminTab);
+            if (panel) panel.hidden = false;
+          });
+        });
+
+        /* Admin result banner (shared for admin tab actions) */
+        const adminResultBanner = document.getElementById('admin-result-banner');
+        const showAdminResult = (msg, isError) => {
+          if (!adminResultBanner) return;
+          adminResultBanner.style.display = '';
+          adminResultBanner.querySelector('p').innerHTML = `<span class="${isError ? 'result-banner--error' : ''}">${msg}</span>`;
+        };
 
         /* Admin pricing catalog — inline Edit Price */
         document.querySelectorAll('[data-pricing-edit]').forEach((editBtn) => {
