@@ -9,7 +9,7 @@
   <body>
 
     <!-- ── Top navigation ──────────────────────────────────────── -->
-    <nav class="top-nav">
+    <nav class="top-nav glass-nav">
       <div class="top-nav-brand">
         <div class="brand-mark">E</div>
         <div class="brand-text">
@@ -138,10 +138,10 @@
 
           <!-- KPI cards -->
           <div class="kpi-row">
-            <div class="kpi-card">
+            <div class="kpi-card glass-card">
               <div class="kpi-top">
                 <div>
-                  <div class="kpi-value">12</div>
+                  <div class="kpi-value" id="kpi-total">–</div>
                   <div class="kpi-label">Total Proposals</div>
                 </div>
                 <div class="kpi-icon kpi-icon--total" aria-hidden="true">
@@ -151,10 +151,10 @@
               <div class="kpi-meta positive">↑ 4 this month</div>
             </div>
 
-            <div class="kpi-card">
+            <div class="kpi-card glass-card">
               <div class="kpi-top">
                 <div>
-                  <div class="kpi-value">5</div>
+                  <div class="kpi-value" id="kpi-review">–</div>
                   <div class="kpi-label">In Review</div>
                 </div>
                 <div class="kpi-icon kpi-icon--review" aria-hidden="true">
@@ -164,10 +164,10 @@
               <div class="kpi-meta">2 need action</div>
             </div>
 
-            <div class="kpi-card">
+            <div class="kpi-card glass-card">
               <div class="kpi-top">
                 <div>
-                  <div class="kpi-value">3</div>
+                  <div class="kpi-value" id="kpi-approved">–</div>
                   <div class="kpi-label">Approved</div>
                 </div>
                 <div class="kpi-icon kpi-icon--approved" aria-hidden="true">
@@ -177,10 +177,10 @@
               <div class="kpi-meta positive">↑ 1 this week</div>
             </div>
 
-            <div class="kpi-card">
+            <div class="kpi-card glass-card">
               <div class="kpi-top">
                 <div>
-                  <div class="kpi-value">7</div>
+                  <div class="kpi-value" id="kpi-exported">–</div>
                   <div class="kpi-label">Exported</div>
                 </div>
                 <div class="kpi-icon kpi-icon--exported" aria-hidden="true">
@@ -198,7 +198,7 @@
             <div class="proposals-section">
               <div class="proposals-header">
                 <h2>Proposals</h2>
-                <button class="primary-btn new-proposal-btn">+ New Proposal</button>
+                <button class="button-primary new-proposal-btn">+ New Proposal</button>
               </div>
               <div class="proposals-filter-bar">
                 <input type="search" id="proposals-search" class="table-search" placeholder="Search a proposal…" aria-label="Search proposals" />
@@ -256,56 +256,8 @@
                 <h3>Latest Activity</h3>
                 <a href="#" class="view-all-link">View all</a>
               </div>
-              <ul class="activity-list" aria-label="Recent activity">
-                <li class="activity-item">
-                  <div class="activity-dot-col">
-                    <div class="activity-dot activity-dot--approved"></div>
-                    <div class="activity-connector"></div>
-                  </div>
-                  <div class="activity-body">
-                    <p class="activity-text"><strong>Global Analytics Platform</strong><br>Taylor submitted concept approval</p>
-                    <p class="activity-time">2 hours ago</p>
-                  </div>
-                </li>
-                <li class="activity-item">
-                  <div class="activity-dot-col">
-                    <div class="activity-dot activity-dot--review"></div>
-                    <div class="activity-connector"></div>
-                  </div>
-                  <div class="activity-body">
-                    <p class="activity-text"><strong>Cybersecurity Readiness</strong><br>Budget gap flag raised in review</p>
-                    <p class="activity-time">3 hours ago</p>
-                  </div>
-                </li>
-                <li class="activity-item">
-                  <div class="activity-dot-col">
-                    <div class="activity-dot activity-dot--export"></div>
-                    <div class="activity-connector"></div>
-                  </div>
-                  <div class="activity-body">
-                    <p class="activity-text"><strong>ERP Transformation</strong><br>Export package generated</p>
-                    <p class="activity-time">5 hours ago</p>
-                  </div>
-                </li>
-                <li class="activity-item">
-                  <div class="activity-dot-col">
-                    <div class="activity-dot activity-dot--approved"></div>
-                    <div class="activity-connector"></div>
-                  </div>
-                  <div class="activity-body">
-                    <p class="activity-text"><strong>AI Strategy Engagement</strong><br>Proposal approved by reviewer</p>
-                    <p class="activity-time">Yesterday at 9:15 am</p>
-                  </div>
-                </li>
-                <li class="activity-item">
-                  <div class="activity-dot-col">
-                    <div class="activity-dot activity-dot--default"></div>
-                  </div>
-                  <div class="activity-body">
-                    <p class="activity-text"><strong>Cloud Migration Program</strong><br>Concept selection pending</p>
-                    <p class="activity-time">Yesterday at 3:40 pm</p>
-                  </div>
-                </li>
+              <ul class="activity-list" id="activity-list" aria-label="Recent activity">
+                <li class="activity-item"><div class="activity-body"><p class="activity-time">Loading…</p></div></li>
               </ul>
             </aside>
 
@@ -383,7 +335,7 @@
             <article class="panel" style="grid-column:1/-1">
               <div class="action-row" style="margin-top:0;margin-bottom:14px;justify-content:flex-end">
                 <button class="secondary-btn">Save Draft</button>
-                <button class="primary-btn">Save and Start</button>
+                <button class="button-primary">Save and Start</button>
               </div>
             </article>
           </div>
@@ -450,7 +402,7 @@
                   </div>
                   <div id="req-field-rows" class="req-field-rows" role="list" aria-label="Requirement fields"></div>
                   <div class="req-approval-footer">
-                    <button class="primary-btn" id="req-approve-btn">Approve reviewed requirements</button>
+                    <button class="button-primary" id="req-approve-btn">Approve reviewed requirements</button>
                   </div>
                 </div>
                 <aside class="req-source-drawer" role="complementary" aria-label="Source evidence" aria-hidden="true">
@@ -541,7 +493,7 @@
                 </div>
                 <h3>No concepts generated yet</h3>
                 <p>Approve requirements in Stage 3 to unlock concept generation.</p>
-                <button class="primary-btn" id="concept-generate-btn">Generate concepts</button>
+                <button class="button-primary" id="concept-generate-btn">Generate concepts</button>
               </div>
             </div>
 
@@ -591,7 +543,7 @@
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Draft — pending approval
                   </p>
                   <div style="display:grid;gap:6px">
-                    <button class="primary-btn" id="concept-approve-btn" style="justify-content:center">Approve concept for costing</button>
+                    <button class="button-primary" id="concept-approve-btn" style="justify-content:center">Approve concept for costing</button>
                     <button class="secondary-btn" id="concept-reject-open-btn" style="justify-content:center">Reject concept…</button>
                     <button class="secondary-btn" id="concept-regen-open-btn" style="justify-content:center">Regenerate with guidance…</button>
                   </div>
@@ -611,7 +563,7 @@
               <label style="display:grid;gap:6px;font-size:.86rem;font-weight:500">Guidance for regeneration<textarea id="regen-guidance-input" rows="3" placeholder="e.g. Keep concept premium but reduce scenic complexity by 20%…" style="resize:vertical"></textarea></label>
               <div class="action-row" style="margin-top:0;justify-content:flex-end">
                 <button class="secondary-btn" id="regen-cancel-btn">Cancel</button>
-                <button class="primary-btn" id="regen-confirm-btn">Confirm and regenerate</button>
+                <button class="button-primary" id="regen-confirm-btn">Confirm and regenerate</button>
               </div>
             </div>
           </div>
@@ -1105,7 +1057,7 @@
 
     <!-- ── Source Evidence Overlay Drawer (global, separate from inline req-source-drawer) ── -->
     <div id="overlay-source-drawer-backdrop" class="overlay-backdrop" hidden aria-hidden="true"></div>
-    <aside id="overlay-source-drawer" class="source-drawer-panel" hidden role="dialog" aria-modal="true" aria-label="Source evidence overlay">
+    <aside id="overlay-source-drawer" class="source-drawer-panel glass-drawer" hidden role="dialog" aria-modal="true" aria-label="Source evidence overlay">
       <div class="source-drawer-header">
         <h2 class="source-drawer-title">Source Evidence</h2>
         <button id="overlay-source-drawer-close" class="overlay-close-btn" aria-label="Close source drawer">
@@ -1134,7 +1086,7 @@
       </label>
       <div class="action-row" style="justify-content:flex-end;margin-top:0">
         <button class="secondary-btn" id="regen-modal-cancel">Cancel</button>
-        <button class="primary-btn" id="regen-modal-confirm" disabled>Confirm and regenerate</button>
+        <button class="button-primary" id="regen-modal-confirm" disabled>Confirm and regenerate</button>
       </div>
     </div>
 

@@ -155,6 +155,26 @@ def list_proposals():
     })
 
 
+@api_bp.get("/proposals/stats")
+def proposals_stats():
+    total = Proposal.query.count()
+    in_review = Proposal.query.filter(Proposal.current_stage.in_(
+        ["requirements_review", "concept_review"]
+    )).count()
+    approved = Proposal.query.filter(
+        Proposal.requirements_approved_at.isnot(None),
+        Proposal.concept_approved_at.isnot(None),
+    ).count()
+    from ..models import ExportPackage
+    exported = db.session.query(ExportPackage.proposal_id).distinct().count()
+    return jsonify({
+        "total": total,
+        "in_review": in_review,
+        "approved": approved,
+        "exported": exported,
+    })
+
+
 @api_bp.post("/proposals")
 def create_proposal():
     data = request.get_json(force=True)

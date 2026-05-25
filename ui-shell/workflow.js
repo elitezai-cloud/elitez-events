@@ -174,11 +174,11 @@ const DashboardPanel = (function () {
 
       tbody.innerHTML = data.proposals.map(p => `
         <tr>
-          <td><div class="proposal-name">${escapeHtml(p.title)}</div></td>
-          <td><span class="status-pill ${_statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
-          <td>${escapeHtml(_stageLabel(p.current_stage))}</td>
-          <td class="date-text">${new Date(p.created_at).toLocaleDateString()}</td>
-          <td class="date-text">${new Date(p.updated_at).toLocaleDateString()}</td>
+          <td data-label="Proposal"><div class="proposal-name">${escapeHtml(p.title)}</div></td>
+          <td data-label="Status"><span class="status-pill ${_statusClass(p.status)}">${escapeHtml(p.status)}</span></td>
+          <td data-label="Stage">${escapeHtml(_stageLabel(p.current_stage))}</td>
+          <td data-label="Created" class="date-text">${new Date(p.created_at).toLocaleDateString()}</td>
+          <td data-label="Updated" class="date-text">${new Date(p.updated_at).toLocaleDateString()}</td>
           <td class="row-actions">
             <button class="action-btn" onclick="DashboardPanel.openProposal(${p.id})">Open</button>
           </td>
@@ -221,8 +221,54 @@ const DashboardPanel = (function () {
     }
   }
 
+  async function loadKpis() {
+    try {
+      const stats = await apiFetch('/api/proposals/stats');
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('kpi-total', stats.total);
+      set('kpi-review', stats.in_review);
+      set('kpi-approved', stats.approved);
+      set('kpi-exported', stats.exported);
+    } catch (_) { /* non-critical; leave placeholders */ }
+  }
+
+  async function loadActivity() {
+    const list = document.getElementById('activity-list');
+    if (!list) return;
+    try {
+      const events = await apiFetch('/api/audit');
+      const recent = events.slice(0, 8);
+      if (!recent.length) {
+        list.innerHTML = '<li class="activity-item"><div class="activity-body"><p class="activity-time">No activity yet.</p></div></li>';
+        return;
+      }
+      const dotClass = (t) => {
+        if (t.includes('approv')) return 'activity-dot--approved';
+        if (t.includes('export')) return 'activity-dot--export';
+        if (t.includes('review') || t.includes('concept')) return 'activity-dot--review';
+        return 'activity-dot--default';
+      };
+      const label = (e) => {
+        const t = e.event_type.replace(/_/g, ' ');
+        return t.charAt(0).toUpperCase() + t.slice(1);
+      };
+      list.innerHTML = recent.map((e, i) => `
+        <li class="activity-item">
+          <div class="activity-dot-col">
+            <div class="activity-dot ${dotClass(e.event_type)}"></div>
+            ${i < recent.length - 1 ? '<div class="activity-connector"></div>' : ''}
+          </div>
+          <div class="activity-body">
+            <p class="activity-text">${label(e)}</p>
+          </div>
+        </li>`).join('');
+    } catch (_) { /* non-critical */ }
+  }
+
   function init() {
     load();
+    loadKpis();
+    loadActivity();
 
     // Search
     const searchEl = document.getElementById('proposals-search');
