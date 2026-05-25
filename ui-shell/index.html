@@ -460,149 +460,143 @@
         </section>
 
         <!-- ════════════════════════════════════════════════════════
-             STAGE 3 — Requirement Review
+             STAGE 3 — Requirement Review  [ELIA-1353 implementation]
         ════════════════════════════════════════════════════════════ -->
-        <section class="stage-content" data-content="requirements">
+        <section class="stage-content" data-content="requirements" id="stage-requirements">
           <div class="stage-topbar">
             <div>
               <h2>Requirement Review</h2>
               <p>Review and approve AI-extracted requirements before concept generation</p>
             </div>
+            <div class="action-row" style="margin-top:0">
+              <button class="secondary-btn req-extract-cta">Run extraction</button>
+            </div>
           </div>
 
-          <div class="panel-grid">
-            <article class="panel">
-              <h3>Requirement Sections</h3>
-              <ul class="requirements-list">
-                <li><span>Venue &amp; Logistics</span><span class="chip ok">Approved</span></li>
-                <li><span>Program &amp; Talent</span><span class="chip review">Needs Review</span></li>
-                <li><span>Technical Production</span><span class="chip review">Needs Review</span></li>
-                <li><span>Budget &amp; Commercials</span><span class="chip blocked">Missing</span></li>
-              </ul>
-            </article>
-
-            <article class="panel">
-              <h3>Editable Requirements</h3>
-              <div class="field-stack">
-                <label>Technical Rider
-                  <textarea rows="4">Main stage with 12m LED wall, confidence 86%</textarea>
-                </label>
-                <label>Streaming Requirement
-                  <textarea rows="3">Dual-language stream to client portal and YouTube</textarea>
-                </label>
-                <label>Budget Notes
-                  <textarea rows="3" placeholder="No budget extracted. Add constraints."></textarea>
-                </label>
-              </div>
-            </article>
+          <!-- State: empty -->
+          <div id="req-state-empty" class="req-state" style="display:none">
+            <div class="panel" style="text-align:center;padding:48px 24px">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom:16px" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <p style="margin:0 0 16px;color:var(--text-subtle)">No requirements extracted yet. Upload tender documents in Tender Intake first, then run extraction.</p>
+              <button class="primary-btn req-extract-cta">Run extraction</button>
+            </div>
           </div>
 
-          <div class="panel-grid">
-            <article class="panel">
-              <h3>Confidence &amp; Missing Fields</h3>
-              <ul class="summary-list">
-                <li>High confidence fields: <strong>14</strong></li>
-                <li>Medium confidence fields: <strong>5</strong></li>
-                <li>Low confidence fields: <strong>3</strong></li>
-                <li class="warn">Missing: budget ceiling, procurement timeline</li>
-              </ul>
-            </article>
-
-            <article class="panel">
-              <h3>Traceability</h3>
-              <p class="note">Source excerpt for "LED wall":</p>
-              <blockquote class="source">"Main plenary requires immersive visual backdrop minimum 40ft width"</blockquote>
-              <div class="action-row">
-                <button class="secondary-btn">View Source Context</button>
-                <button class="primary-btn">Approve &amp; Continue</button>
+          <!-- State: loading (skeleton) -->
+          <div id="req-state-loading" class="req-state" style="display:none" role="status" aria-live="polite" aria-label="Extracting requirements">
+            <div class="panel">
+              <p class="note" style="margin-bottom:16px">Extracting requirements and source citations…</p>
+              <div class="req-skeleton">
+                <div class="req-skel-row"></div>
+                <div class="req-skel-row req-skel-row--short"></div>
+                <div class="req-skel-row"></div>
+                <div class="req-skel-row req-skel-row--short"></div>
+                <div class="req-skel-row"></div>
               </div>
-            </article>
+            </div>
+          </div>
 
-            <article class="panel source-drawer">
-              <h4>Source Evidence Drawer</h4>
-              <pre>Doc: tender_addendum_2026-05-01.txt
-Paragraph: p-14
-Confidence: 0.94</pre>
-              <p class="note">Linked to Budget / Logistics and Technical sections.</p>
-            </article>
+          <!-- State: active -->
+          <div id="req-state-active" class="req-state">
+            <div id="req-fields-container"></div>
+            <div class="panel req-approval-footer">
+              <div class="req-approval-inner">
+                <div>
+                  <p style="margin:0;font-size:.875rem;color:var(--text-body)">Ready to approve? All required fields must have values.</p>
+                  <p id="req-missing-note" class="note" style="margin-top:4px;color:#c2410c;display:none"></p>
+                </div>
+                <button class="primary-btn" id="req-approve-btn" disabled>Approve reviewed requirements</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- State: error -->
+          <div id="req-state-error" class="req-state" style="display:none">
+            <div class="panel" style="border:1px solid #fca5a5;background:#fef2f2;padding:20px">
+              <p style="margin:0 0 4px;font-weight:600;color:#dc2626">Extraction failed</p>
+              <p id="req-error-msg" class="note" style="color:#dc2626;margin:0 0 16px"></p>
+              <div class="action-row" style="margin-top:0">
+                <button class="secondary-btn req-extract-cta">Retry extraction</button>
+                <button class="secondary-btn" id="req-check-files-btn">Check uploaded files</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- State: locked (approved) -->
+          <div id="req-state-locked" class="req-state" style="display:none">
+            <div id="req-locked-fields-container"></div>
+            <div class="panel req-approval-footer req-locked-footer">
+              <div class="req-approval-inner">
+                <p id="req-locked-label" style="margin:0;font-size:.875rem;color:var(--text-body)"></p>
+                <button class="secondary-btn" id="req-return-btn">Return for changes</button>
+              </div>
+            </div>
           </div>
         </section>
 
         <!-- ════════════════════════════════════════════════════════
-             STAGE 4 — Concept Selection
+             STAGE 4 — Concept Selection  [ELIA-1353 implementation]
         ════════════════════════════════════════════════════════════ -->
-        <section class="stage-content" data-content="concepts">
+        <section class="stage-content" data-content="concepts" id="stage-concepts">
           <div class="stage-topbar">
             <div>
               <h2>Concept Selection</h2>
               <p>Review AI-generated concepts and select one for costing</p>
             </div>
+            <div class="action-row" style="margin-top:0">
+              <button class="secondary-btn" id="concept-regen-btn" style="display:none">Regenerate concepts</button>
+            </div>
           </div>
 
-          <div class="panel-grid concepts-grid">
-            <article class="panel concept-card selected">
-              <div class="concept-thumb concept-thumb--a" aria-hidden="true">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              </div>
-              <div class="concept-body">
-                <div class="concept-fit-badge fit--high">High Fit</div>
-                <h3>Concept A: Future Forge</h3>
-                <p style="font-size:.875rem;color:var(--text-body)">Industrial-tech keynote arc with broadcast-first pacing.</p>
-                <div class="tags"><span>Premium Build</span></div>
-                <p class="note">KB refs: APAC Summit 2025, Broadcast Kit v3</p>
-                <div class="action-row"><button class="primary-btn">Selected for Costing</button></div>
-              </div>
-            </article>
-
-            <article class="panel concept-card">
-              <div class="concept-thumb concept-thumb--b" aria-hidden="true">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              </div>
-              <div class="concept-body">
-                <div class="concept-fit-badge fit--mid">Medium Fit</div>
-                <h3>Concept B: Community Nexus</h3>
-                <p style="font-size:.875rem;color:var(--text-body)">Audience participation and fan-zone emphasis.</p>
-                <div class="tags"><span>Value Build</span></div>
-                <p class="note">KB refs: Fan Expo 2024, Activations Pack</p>
-                <div class="action-row"><button class="secondary-btn">Select Concept</button></div>
-              </div>
-            </article>
-
-            <article class="panel concept-card">
-              <div class="concept-thumb concept-thumb--c" aria-hidden="true">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              </div>
-              <div class="concept-body">
-                <div class="concept-fit-badge fit--mid">Medium Fit</div>
-                <h3>Concept C: Prestige Stagecraft</h3>
-                <p style="font-size:.875rem;color:var(--text-body)">Cinematic reveal sequence with elevated scenic design.</p>
-                <div class="tags"><span>High Cost</span></div>
-                <p class="note">KB refs: Awards Gala 2025, Scenic Library</p>
-                <div class="action-row"><button class="secondary-btn">Select Concept</button></div>
-              </div>
-            </article>
+          <!-- State: empty -->
+          <div id="concept-state-empty" class="concept-state" style="display:none">
+            <div class="panel" style="text-align:center;padding:48px 24px">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom:16px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <p style="margin:0 0 16px;color:var(--text-subtle)">Approve requirements in Stage 3 first, then generate concept options.</p>
+              <button class="primary-btn" id="concept-generate-cta">Generate concepts</button>
+            </div>
           </div>
 
-          <div class="panel-grid">
-            <article class="panel">
-              <h3>Regenerate Concepts</h3>
-              <label>Guidance<input type="text" value="Keep concept premium but reduce scenic complexity by 20%" /></label>
-              <div class="action-row">
-                <button class="secondary-btn">Regenerate with Guidance</button>
-              </div>
-            </article>
+          <!-- State: loading (skeleton respects prefers-reduced-motion) -->
+          <div id="concept-state-loading" class="concept-state" style="display:none" role="status" aria-live="polite" aria-label="Generating concepts">
+            <div class="panel-grid concepts-grid" aria-hidden="true">
+              <div class="panel concept-card"><div class="concept-thumb concept-skel-thumb"></div><div class="concept-body"><div class="concept-skel-line"></div><div class="concept-skel-line concept-skel-line--short"></div><div class="concept-skel-line concept-skel-line--short"></div></div></div>
+              <div class="panel concept-card"><div class="concept-thumb concept-skel-thumb"></div><div class="concept-body"><div class="concept-skel-line"></div><div class="concept-skel-line concept-skel-line--short"></div><div class="concept-skel-line concept-skel-line--short"></div></div></div>
+              <div class="panel concept-card"><div class="concept-thumb concept-skel-thumb"></div><div class="concept-body"><div class="concept-skel-line"></div><div class="concept-skel-line concept-skel-line--short"></div><div class="concept-skel-line concept-skel-line--short"></div></div></div>
+            </div>
+            <p class="note" style="text-align:center;margin-top:12px">Generating concept options…</p>
+          </div>
 
-            <article class="panel">
-              <h3>Approval State</h3>
-              <ul class="summary-list">
-                <li>Selected concept: <strong>Future Forge</strong></li>
-                <li>Reviewer: <strong>Proposal Manager</strong></li>
-                <li>Status: <strong>Approved for Costing</strong></li>
-              </ul>
-              <div class="action-row">
-                <button class="primary-btn">Proceed to Costing Builder</button>
+          <!-- State: active / selected -->
+          <div id="concept-state-active" class="concept-state">
+            <div id="concept-cards-container" class="panel-grid concepts-grid" role="radiogroup" aria-label="Select a concept for costing"></div>
+            <div id="concept-approval-panel" class="panel" style="display:none">
+              <h3 style="margin-top:0">Approve selected concept</h3>
+              <div id="concept-approval-inner"></div>
+            </div>
+          </div>
+
+          <!-- State: approved (locked) -->
+          <div id="concept-state-approved" class="concept-state" style="display:none">
+            <div id="concept-approved-cards" class="panel-grid concepts-grid"></div>
+            <div class="panel req-approval-footer req-locked-footer">
+              <div class="req-approval-inner">
+                <p id="concept-locked-label" style="margin:0;font-size:.875rem;color:var(--text-body)"></p>
+                <button class="secondary-btn" id="concept-revision-btn">Create revision</button>
               </div>
-            </article>
+            </div>
+          </div>
+
+          <!-- State: error -->
+          <div id="concept-state-error" class="concept-state" style="display:none">
+            <div class="panel" style="border:1px solid #fca5a5;background:#fef2f2;padding:20px">
+              <p style="margin:0 0 4px;font-weight:600;color:#dc2626">Concept generation paused</p>
+              <p id="concept-error-msg" class="note" style="color:#dc2626;margin:0 0 16px"></p>
+              <div class="action-row" style="margin-top:0">
+                <button class="secondary-btn" id="concept-retry-btn">Retry generation</button>
+                <button class="secondary-btn" id="concept-guidance-btn">Provide guidance</button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1213,6 +1207,65 @@ Confidence: 0.94</pre>
       </main>
     </div><!-- /.app-body -->
 
+    <!-- ── Source Evidence Drawer ──────────────────────────────── -->
+    <div id="source-drawer-backdrop" class="overlay-backdrop" hidden aria-hidden="true"></div>
+    <aside id="source-drawer" class="source-drawer-panel" hidden role="dialog" aria-modal="true" aria-label="Source evidence">
+      <div class="source-drawer-header">
+        <h2 class="source-drawer-title">Source Evidence</h2>
+        <button id="source-drawer-close" class="overlay-close-btn" aria-label="Close source drawer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="source-drawer-content" class="source-drawer-body"></div>
+    </aside>
+
+    <!-- ── Regenerate Concepts Modal ───────────────────────────── -->
+    <div id="regen-modal-backdrop" class="overlay-backdrop" hidden aria-hidden="true"></div>
+    <div id="regen-modal" class="overlay-modal" hidden role="dialog" aria-modal="true" aria-labelledby="regen-modal-title">
+      <div class="overlay-modal-header">
+        <h2 id="regen-modal-title" class="overlay-modal-title">Regenerate Concepts</h2>
+        <button id="regen-modal-close" class="overlay-close-btn" aria-label="Close regenerate modal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="regen-modal-warning" class="regen-modal-warning" hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Generating new concepts will replace the current approved concept.
+      </div>
+      <label style="display:block;margin-bottom:16px">
+        <span style="font-size:.875rem;font-weight:500;color:var(--text-body);display:block;margin-bottom:6px">Guidance (required)</span>
+        <textarea id="regen-modal-input" rows="3" style="width:100%" placeholder="E.g. Keep it premium but reduce scenic complexity by 20%…" aria-required="true"></textarea>
+      </label>
+      <div class="action-row" style="justify-content:flex-end;margin-top:0">
+        <button class="secondary-btn" id="regen-modal-cancel">Cancel</button>
+        <button class="primary-btn" id="regen-modal-confirm" disabled>Confirm and regenerate</button>
+      </div>
+    </div>
+
+    <!-- ── Reject Reason Modal ──────────────────────────────────── -->
+    <div id="reject-reason-modal" class="overlay-modal" hidden role="dialog" aria-modal="true" aria-labelledby="reject-reason-title">
+      <div class="overlay-modal-header">
+        <h2 id="reject-reason-title" class="overlay-modal-title">Reject Concept</h2>
+        <button id="reject-reason-cancel" class="overlay-close-btn" aria-label="Cancel reject">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <label style="display:block;margin-bottom:16px">
+        <span style="font-size:.875rem;font-weight:500;color:var(--text-body);display:block;margin-bottom:6px">Reason for rejection (required)</span>
+        <textarea id="reject-reason-input" rows="3" style="width:100%" placeholder="E.g. Budget does not support this scope…" aria-required="true"></textarea>
+      </label>
+      <div class="action-row" style="justify-content:flex-end;margin-top:0">
+        <button class="secondary-btn" id="reject-reason-cancel-btn">Cancel</button>
+        <button class="primary-btn" id="reject-reason-confirm" disabled>Confirm rejection</button>
+      </div>
+    </div>
+
+    <!-- ── Undo Snackbar ────────────────────────────────────────── -->
+    <div id="undo-snackbar" class="undo-snackbar" hidden role="status" aria-live="polite">
+      <span id="undo-snackbar-msg"></span>
+      <button id="undo-snackbar-btn" class="undo-snackbar-btn">Undo</button>
+    </div>
+
     <script src="workflow.js"></script>
     <script>
       (function () {
@@ -1393,6 +1446,16 @@ Confidence: 0.94</pre>
             setActiveStage('intake', tabs, contents, railStages);
             syncAdminEmptyStates(document);
             showStatus('New proposal started — complete Tender Intake to begin.');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+        }
+
+        /* Check uploaded files — routes to Tender Intake from Stage 3 empty state */
+        const checkFilesBtn = document.getElementById('req-check-files-btn');
+        if (checkFilesBtn) {
+          checkFilesBtn.addEventListener('click', () => {
+            setActiveStage('intake', tabs, contents, railStages);
+            syncAdminEmptyStates(document);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           });
         }
