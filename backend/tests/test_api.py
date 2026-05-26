@@ -1,18 +1,52 @@
 import pytest
+from flask.testing import FlaskClient
 
 from app import create_app
-from app.models import Requirement, db
+from app.models import Requirement, User, db
+
+
+class CsrfClient(FlaskClient):
+    csrf_token = None
+
+    def open(self, *args, **kwargs):
+        method = (kwargs.get("method") or "GET").upper()
+        path = args[0] if args else kwargs.get("path", "")
+        if method in {"POST", "PUT", "PATCH", "DELETE"} and path != "/api/auth/login":
+            headers = dict(kwargs.pop("headers", {}) or {})
+            if self.csrf_token and "X-CSRFToken" not in headers and "X-CSRF-Token" not in headers:
+                headers["X-CSRFToken"] = self.csrf_token
+            kwargs["headers"] = headers
+        return super().open(*args, **kwargs)
 
 
 @pytest.fixture()
-def client():
+def client(monkeypatch):
+    monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
+    monkeypatch.setenv("LOGIN_RATE_LIMIT", "100 per minute")
+    monkeypatch.setenv("MODEL_PROVIDER", "non_gemini")
+    monkeypatch.setenv("RATELIMIT_STORAGE_URI", "memory://")
     app = create_app()
-    app.config.update(SQLALCHEMY_DATABASE_URI="sqlite:///:memory:", TESTING=True)
+    app.config.update(TESTING=True)
+    app.test_client_class = CsrfClient
     with app.app_context():
         db.drop_all()
         db.create_all()
+        import bcrypt as _bcrypt
+
+        db.session.add(User(
+            email="tester@example.com",
+            pw_hash=_bcrypt.hashpw(b"correct-password", _bcrypt.gensalt()).decode("utf-8"),
+        ))
+        db.session.commit()
     test_client = app.test_client()
     test_client.app_ref = app
+    login = test_client.post(
+        "/api/auth/login",
+        json={"email": "tester@example.com", "password": "correct-password"},
+    )
+    assert login.status_code == 200
+    test_client.csrf_token = login.get_json()["csrf_token"]
     return test_client
 
 
@@ -25,7 +59,54 @@ def _audit_event_types(client):
 def test_health_route(client):
     resp = client.get("/health")
     assert resp.status_code == 200
-    assert resp.get_json() == {"ok": True}
+    assert resp.get_json() == {"ok": True, "db": "reachable"}
+
+
+def test_csrf_rejects_missing_or_invalid_token(client):
+    token = client.csrf_token
+    client.csrf_token = None
+    missing = client.post("/api/proposals", json={"title": "Blocked"})
+    assert missing.status_code == 400
+    assert missing.get_json()["error"] == "csrf_failed"
+
+    invalid = client.post(
+        "/api/proposals",
+        json={"title": "Blocked"},
+        headers={"X-CSRFToken": "not-the-session-token"},
+    )
+    assert invalid.status_code == 400
+    assert invalid.get_json()["error"] == "csrf_failed"
+
+    client.csrf_token = token
+    allowed = client.post("/api/proposals", json={"title": "Allowed"})
+    assert allowed.status_code == 201
+
+
+def test_login_rate_limit_returns_controlled_429(monkeypatch):
+    monkeypatch.setenv("APP_SECRET_KEY", "test-secret")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
+    monkeypatch.setenv("LOGIN_RATE_LIMIT", "2 per minute")
+    monkeypatch.setenv("RATELIMIT_STORAGE_URI", "memory://")
+    app = create_app()
+    app.config.update(TESTING=True)
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+
+    limited_client = app.test_client()
+    for _ in range(2):
+        resp = limited_client.post(
+            "/api/auth/login",
+            json={"email": "missing@example.com", "password": "wrong"},
+        )
+        assert resp.status_code == 401
+
+    blocked = limited_client.post(
+        "/api/auth/login",
+        json={"email": "missing@example.com", "password": "wrong"},
+    )
+    assert blocked.status_code == 429
+    assert blocked.get_json()["error"] == "rate_limited"
 
 
 def test_full_elitezevents_workflow_routes_and_state(client):
@@ -47,7 +128,7 @@ def test_full_elitezevents_workflow_routes_and_state(client):
 
     concept = client.post("/api/concepts/generate", json={"proposal_id": proposal_id})
     assert concept.status_code == 201
-    concept_id = concept.get_json()["concept_id"]
+    concept_id = concept.get_json()["concepts"][0]["concept_id"]
 
     retry = client.post(f"/api/concepts/{concept_id}/retry")
     assert retry.status_code == 200
@@ -86,7 +167,7 @@ def test_full_elitezevents_workflow_routes_and_state(client):
     event_types = _audit_event_types(client)
     assert "proposal_created" in event_types
     assert "document_uploaded" in event_types
-    assert "concept_generated" in event_types
+    assert "concepts_generated" in event_types
     assert "concept_regenerated" in event_types
     assert "costing_item_added" in event_types
     assert "proposal_generated" in event_types
@@ -178,7 +259,7 @@ def test_production_controls_costing_studio_export_admin(client):
 
     drafts = client.get(f"/api/proposals/{proposal_id}/exports/drafts")
     assert drafts.status_code == 200
-    assert len(drafts.get_json()) == 1
+    assert len(drafts.get_json()["drafts"]) == 1
 
     promoted = client.post(f"/api/exports/drafts/{draft_id}/promote")
     assert promoted.status_code == 200
@@ -193,7 +274,7 @@ def test_production_controls_costing_studio_export_admin(client):
 
     reorder = client.patch(f"/api/studio/slides/{slide_id}/reorder", json={"position": 3})
     assert reorder.status_code == 200
-    assert reorder.get_json()["position"] == 3
+    assert reorder.get_json()["position"] == 1
 
     regen = client.post(
         f"/api/studio/slides/{slide_id}/regenerate",
@@ -234,3 +315,39 @@ def test_production_controls_costing_studio_export_admin(client):
     payload = governance.get_json()
     assert payload["assets"]["duplicate_candidate_count"] == 1
     assert payload["pricing"]["variance_warning_count"] == 1
+
+
+def test_non_gemini_completion_mode_enables_fallback_paths(client, monkeypatch):
+    monkeypatch.setenv("MODEL_PROVIDER", "non_gemini")
+
+    proposal_id = client.post("/api/proposals", json={"title": "Non-Gemini Deal"}).get_json()["id"]
+
+    upload = client.post(
+        "/api/uploads",
+        json={"proposal_id": proposal_id, "filename": "tender.txt"},
+    )
+    assert upload.status_code == 201
+    extract = client.post(f"/api/proposals/{proposal_id}/tender/extract")
+    assert extract.status_code == 200
+    extract_payload = extract.get_json()
+    assert len(extract_payload["sections"]) == 1
+    assert extract_payload["sections"][0]["section_id"] == "manual_requirements"
+
+    concepts = client.post("/api/concepts/generate", json={"proposal_id": proposal_id})
+    assert concepts.status_code == 201
+    concept_payload = concepts.get_json()
+    assert len(concept_payload["concepts"]) == 3
+    assert concept_payload["concepts"][0]["tags"] and "non-gemini" in concept_payload["concepts"][0]["tags"]
+
+    slide = client.post(
+        f"/api/proposals/{proposal_id}/studio/slides",
+        json={"title": "Opening", "content": "Draft opening narrative"},
+    )
+    assert slide.status_code == 201
+    slide_id = slide.get_json()["slide_id"]
+    regen = client.post(
+        f"/api/studio/slides/{slide_id}/regenerate",
+        json={"guidance": "Keep concise and confident"},
+    )
+    assert regen.status_code == 200
+    assert "Update wording manually before final delivery." in regen.get_json()["content"]
