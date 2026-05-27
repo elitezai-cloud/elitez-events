@@ -402,14 +402,14 @@
                     <button class="button-primary" id="req-approve-btn">Approve reviewed requirements</button>
                   </div>
                 </div>
-                <aside class="req-source-drawer" role="complementary" aria-label="Source evidence" aria-hidden="true">
+                <aside class="req-source-drawer" id="source-drawer" role="complementary" aria-label="Source evidence" aria-hidden="true">
                   <div class="req-drawer-header">
                     <h4>Source Evidence</h4>
-                    <button class="req-drawer-close" id="req-drawer-close" aria-label="Close source evidence">
+                    <button class="req-drawer-close" id="source-drawer-close" aria-label="Close source evidence">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </div>
-                  <div class="req-drawer-body" id="req-drawer-body"></div>
+                  <div class="req-drawer-body" id="source-drawer-body"></div>
                 </aside>
               </div>
             </div>
@@ -550,17 +550,17 @@
           </div>
 
           <!-- Regenerate modal -->
-          <div class="regen-modal-overlay" id="regen-modal" role="dialog" aria-modal="true" aria-label="Regenerate concepts" hidden>
+          <div class="regen-modal-overlay" id="concept-regen-modal" role="dialog" aria-modal="true" aria-label="Regenerate concepts" hidden>
             <div class="regen-modal">
               <h4>Regenerate Concepts</h4>
-              <div class="regen-warning" id="regen-warning" hidden>
+              <div class="regen-warning" id="concept-regen-warning" hidden>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 <span>Generating new concepts will replace the current approved concept.</span>
               </div>
-              <label style="display:grid;gap:6px;font-size:.86rem;font-weight:500">Guidance for regeneration<textarea id="regen-guidance-input" rows="3" placeholder="e.g. Keep concept premium but reduce scenic complexity by 20%…" style="resize:vertical"></textarea></label>
+              <label style="display:grid;gap:6px;font-size:.86rem;font-weight:500">Guidance for regeneration<textarea id="concept-regen-guidance-input" rows="3" placeholder="e.g. Keep concept premium but reduce scenic complexity by 20%…" style="resize:vertical"></textarea></label>
               <div class="action-row" style="margin-top:0;justify-content:flex-end">
-                <button class="secondary-btn" id="regen-cancel-btn">Cancel</button>
-                <button class="button-primary" id="regen-confirm-btn">Confirm and regenerate</button>
+                <button class="secondary-btn" id="concept-regen-cancel-btn">Cancel</button>
+                <button class="button-primary" id="concept-regen-confirm-btn">Confirm and regenerate</button>
               </div>
             </div>
           </div>
@@ -599,21 +599,23 @@
                   <button class="secondary-btn" data-costing-version>Snapshot Version</button>
                 </div>
               </div>
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Unit Cost</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th style="text-align:right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="costing-items-tbody">
-                  <tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">Loading costing items…</td></tr>
-                </tbody>
-              </table>
+              <div class="responsive-table-wrap" tabindex="0" aria-label="Line-item costing table">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Qty</th>
+                      <th>Unit Cost</th>
+                      <th>Total</th>
+                      <th>Status</th>
+                      <th style="text-align:right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="costing-items-tbody">
+                    <tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:24px">Loading costing items…</td></tr>
+                  </tbody>
+                </table>
+              </div>
               <div id="costing-result-banner" class="result-banner" hidden></div>
             </article>
           </div>
@@ -745,33 +747,35 @@
             <article class="panel admin-panel-wide">
               <h3>Draft Versioning</h3>
               <p class="note">Every export draft is persisted with immutable artifacts and diff references.</p>
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Draft</th>
-                    <th>Parent Version</th>
-                    <th>Artifact Set</th>
-                    <th>Access</th>
-                    <th>State</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>export_20260515_1422</td>
-                    <td>v1.8.4</td>
-                    <td>PDF + Deck + CSV</td>
-                    <td><button class="secondary-btn">Open</button> <button class="secondary-btn">Download</button></td>
-                    <td><span class="pill pill-review">Staged</span></td>
-                  </tr>
-                  <tr>
-                    <td>export_20260514_0942</td>
-                    <td>v1.8.3</td>
-                    <td>PDF + Deck</td>
-                    <td><button class="secondary-btn">Open</button> <button class="secondary-btn">Download</button></td>
-                    <td><span class="pill pill-ok">Archived</span></td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="responsive-table-wrap" tabindex="0" aria-label="Draft versioning table">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Draft</th>
+                      <th>Parent Version</th>
+                      <th>Artifact Set</th>
+                      <th>Access</th>
+                      <th>State</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>export_20260515_1422</td>
+                      <td>v1.8.4</td>
+                      <td>PDF + Deck + CSV</td>
+                      <td><button class="secondary-btn">Open</button> <button class="secondary-btn">Download</button></td>
+                      <td><span class="pill pill-review">Staged</span></td>
+                    </tr>
+                    <tr>
+                      <td>export_20260514_0942</td>
+                      <td>v1.8.3</td>
+                      <td>PDF + Deck</td>
+                      <td><button class="secondary-btn">Open</button> <button class="secondary-btn">Download</button></td>
+                      <td><span class="pill pill-ok">Archived</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               <div class="action-row" style="margin-top: 10px">
                 <button class="secondary-btn">Compare Drafts</button>
                 <button class="secondary-btn">Promote Draft</button>
@@ -782,30 +786,32 @@
           <div class="panel-grid">
             <article class="panel admin-panel-wide">
               <h3>Export History</h3>
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Timestamp</th>
-                    <th>Package</th>
-                    <th>Status</th>
-                    <th>By</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>2026-05-14 09:42 UTC</td>
-                    <td>PDF + Deck + Costing CSV</td>
-                    <td><span class="pill pill-ok">Success</span></td>
-                    <td>Camila</td>
-                  </tr>
-                  <tr>
-                    <td>2026-05-13 18:03 UTC</td>
-                    <td>PDF + Deck</td>
-                    <td><span class="pill pill-alert">Blocked</span></td>
-                    <td>System</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="responsive-table-wrap" tabindex="0" aria-label="Export history table">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Package</th>
+                      <th>Status</th>
+                      <th>By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>2026-05-14 09:42 UTC</td>
+                      <td>PDF + Deck + Costing CSV</td>
+                      <td><span class="pill pill-ok">Success</span></td>
+                      <td>Camila</td>
+                    </tr>
+                    <tr>
+                      <td>2026-05-13 18:03 UTC</td>
+                      <td>PDF + Deck</td>
+                      <td><span class="pill pill-alert">Blocked</span></td>
+                      <td>System</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               <div class="audit-trail">
                 <p><strong>QA Validation:</strong> <span class="pill pill-alert">1 blocked export</span> <span class="pill">Retry available</span></p>
                 <p><strong>Deployment:</strong> Staging <span class="pill pill-ok">synced</span> Prod <span class="pill pill-review">queued</span></p>
@@ -877,20 +883,22 @@
                 <h3>Pricing Catalog Manager</h3>
                 <button class="primary-btn" data-action="pricing-add-line">+ Add Line Item</button>
               </div>
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Unit</th>
-                    <th>Current Price</th>
-                    <th>Last Updated</th>
-                    <th>Governance</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-pricing-tbody">
-                  <tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:20px">Loading pricing catalog…</td></tr>
-                </tbody>
-              </table>
+              <div class="responsive-table-wrap" tabindex="0" aria-label="Pricing catalog table">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Unit</th>
+                      <th>Current Price</th>
+                      <th>Last Updated</th>
+                      <th>Governance</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-pricing-tbody">
+                    <tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:20px">Loading pricing catalog…</td></tr>
+                  </tbody>
+                </table>
+              </div>
               <div class="empty-state" hidden>
                 <p>No additional pricing line items in this snapshot.</p>
                 <button class="secondary-btn">Load Full Pricing Catalog</button>
@@ -953,12 +961,14 @@
               <div class="admin-headline-row">
                 <h3>Template Assets</h3>
               </div>
-              <table class="admin-table">
-                <thead><tr><th>Type</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admin-assets-tbody">
-                  <tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:20px">Loading assets…</td></tr>
-                </tbody>
-              </table>
+              <div class="responsive-table-wrap" tabindex="0" aria-label="Template assets table">
+                <table class="admin-table">
+                  <thead><tr><th>Type</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admin-assets-tbody">
+                    <tr><td colspan="4" style="text-align:center;color:var(--ink-soft);padding:20px">Loading assets…</td></tr>
+                  </tbody>
+                </table>
+              </div>
             </article>
             <!-- legacy static kept below for reference, hidden -->
             <div hidden><ul class="governance-list">
@@ -1009,47 +1019,49 @@
                   <button class="secondary-btn" data-action="publish-kb-changes">Publish KB Asset Changes</button>
                 </div>
               </div>
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Timestamp</th>
-                    <th>Action</th>
-                    <th>Scope</th>
-                    <th>Actor</th>
-                    <th>Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>2026-05-15 14:22 UTC</td>
-                    <td>Duplicate Audit</td>
-                    <td>Pricing + KB</td>
-                    <td>Alex Morgan</td>
-                    <td><span class="pill pill-ok">4 candidates found</span></td>
-                  </tr>
-                  <tr>
-                    <td>2026-05-14 10:05 UTC</td>
-                    <td>Stale Scan</td>
-                    <td>Pricing SKUs</td>
-                    <td>System</td>
-                    <td><span class="pill pill-stale">2 stale rates</span></td>
-                  </tr>
-                  <tr>
-                    <td>2026-05-13 09:31 UTC</td>
-                    <td>Template Publish</td>
-                    <td>Premium Pitch v4</td>
-                    <td>Taylor Chen</td>
-                    <td><span class="pill pill-ok">Success</span></td>
-                  </tr>
-                  <tr>
-                    <td>2026-05-12 16:44 UTC</td>
-                    <td>KB Publish</td>
-                    <td>APAC Summit 2025 Deck</td>
-                    <td>Rai Patel</td>
-                    <td><span class="pill pill-alert">Blocked — owner review</span></td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="responsive-table-wrap" tabindex="0" aria-label="Governance audit log table">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Timestamp</th>
+                      <th>Action</th>
+                      <th>Scope</th>
+                      <th>Actor</th>
+                      <th>Result</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>2026-05-15 14:22 UTC</td>
+                      <td>Duplicate Audit</td>
+                      <td>Pricing + KB</td>
+                      <td>Alex Morgan</td>
+                      <td><span class="pill pill-ok">4 candidates found</span></td>
+                    </tr>
+                    <tr>
+                      <td>2026-05-14 10:05 UTC</td>
+                      <td>Stale Scan</td>
+                      <td>Pricing SKUs</td>
+                      <td>System</td>
+                      <td><span class="pill pill-stale">2 stale rates</span></td>
+                    </tr>
+                    <tr>
+                      <td>2026-05-13 09:31 UTC</td>
+                      <td>Template Publish</td>
+                      <td>Premium Pitch v4</td>
+                      <td>Taylor Chen</td>
+                      <td><span class="pill pill-ok">Success</span></td>
+                    </tr>
+                    <tr>
+                      <td>2026-05-12 16:44 UTC</td>
+                      <td>KB Publish</td>
+                      <td>APAC Summit 2025 Deck</td>
+                      <td>Rai Patel</td>
+                      <td><span class="pill pill-alert">Blocked - owner review</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </article>
           </div>
         </section>
@@ -1291,6 +1303,7 @@
           +'<div><div class="req-drawer-section">Page</div><div class="req-drawer-value">'+src.page+'</div></div>'
           +'<div><div class="req-drawer-section">Source Excerpt</div><blockquote class="req-drawer-excerpt">'+src.excerpt+'</blockquote></div>'
           +'<div><div class="req-drawer-section">Confidence</div><div class="req-drawer-value">'+confBadge(f.confidence)+' '+Math.round(src.conf*100)+'%</div></div>';
+        srcDrawer.hidden = false;
         srcDrawer.setAttribute('aria-hidden','false');
         if (reqLayout) reqLayout.classList.add('drawer-open');
         if (srcDrawerClose) srcDrawerClose.focus();
@@ -1299,6 +1312,7 @@
       function closeDrawer() {
         if (!srcDrawer) return;
         srcDrawer.setAttribute('aria-hidden','true');
+        srcDrawer.hidden = true;
         if (reqLayout) reqLayout.classList.remove('drawer-open');
         if (activeChip) { activeChip.focus(); activeChip = null; }
       }
@@ -1388,11 +1402,11 @@
       var conceptRevBtn   = document.getElementById('concept-revision-btn');
       var conceptGuidBtn  = document.getElementById('concept-guidance-btn');
 
-      var regenModal      = document.getElementById('regen-modal');
-      var regenWarning    = document.getElementById('regen-warning');
-      var regenInput      = document.getElementById('regen-guidance-input');
-      var regenCancelBtn  = document.getElementById('regen-cancel-btn');
-      var regenConfirmBtn = document.getElementById('regen-confirm-btn');
+      var regenModal      = document.getElementById('concept-regen-modal');
+      var regenWarning    = document.getElementById('concept-regen-warning');
+      var regenInput      = document.getElementById('concept-regen-guidance-input');
+      var regenCancelBtn  = document.getElementById('concept-regen-cancel-btn');
+      var regenConfirmBtn = document.getElementById('concept-regen-confirm-btn');
 
       var rejectModal     = document.getElementById('reject-modal');
       var rejectInput     = document.getElementById('reject-reason-input');

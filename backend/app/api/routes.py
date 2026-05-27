@@ -4,8 +4,10 @@ import logging
 import zipfile
 from datetime import datetime
 
-from flask import Blueprint, jsonify, request, send_file, session
+from flask import Blueprint, current_app, jsonify, request, send_file, session
+from flask_wtf.csrf import generate_csrf
 
+from .. import csrf, limiter
 from ..models import (
     Approval,
     Concept,
@@ -23,6 +25,7 @@ from ..models import (
     db,
 )
 from ..services.audit import record_audit
+from ..services import llm as llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,8 @@ def require_auth():
 # ── Auth routes ─────────────────────────────────────────────────────────────
 
 @api_bp.post("/auth/login")
+@csrf.exempt
+@limiter.limit(lambda: current_app.config["LOGIN_RATE_LIMIT"])
 def auth_login():
     import bcrypt as _bcrypt
     data = request.get_json(force=True)
@@ -60,7 +65,7 @@ def auth_login():
     if not _bcrypt.checkpw(password, pw_hash):
         return jsonify({"error": "invalid_credentials"}), 401
     session["user_email"] = user.email
-    return jsonify({"ok": True, "email": user.email})
+    return jsonify({"ok": True, "email": user.email, "csrf_token": generate_csrf()})
 
 
 @api_bp.post("/auth/logout")
@@ -74,7 +79,7 @@ def auth_me():
     email = session.get("user_email")
     if not email:
         return jsonify({"error": "not_authenticated"}), 401
-    return jsonify({"email": email})
+    return jsonify({"email": email, "csrf_token": generate_csrf()})
 
 
 # ── Helper ──────────────────────────────────────────────────────────────────
@@ -286,6 +291,7 @@ def tender_extract(proposal_id: int):
 
     doc.parse_status = "parsing"
     db.session.commit()
+    non_gemini_mode = llm_service.is_non_gemini_enabled()
 
     try:
         from ..services.llm import extract_tender_requirements
@@ -313,7 +319,12 @@ def tender_extract(proposal_id: int):
         db.session.add(fallback_req)
         doc.parse_status = "complete"
         db.session.commit()
-        record_audit("tender_extracted_fallback", {"document_id": doc.id}, proposal_id, actor=_actor())
+        record_audit(
+            "tender_extracted_fallback",
+            {"document_id": doc.id, "completion_mode": "non_gemini"},
+            proposal_id,
+            actor=_actor(),
+        )
         return _build_requirements_response(proposal_id)
 
     # Persist requirements
@@ -333,7 +344,12 @@ def tender_extract(proposal_id: int):
 
     doc.parse_status = "complete"
     db.session.commit()
-    record_audit("tender_extracted", {"document_id": doc.id}, proposal_id, actor=_actor())
+    record_audit(
+        "tender_extracted_fallback" if non_gemini_mode else "tender_extracted",
+        {"document_id": doc.id, "completion_mode": "non_gemini" if non_gemini_mode else "gemini"},
+        proposal_id,
+        actor=_actor(),
+    )
 
     # Return same shape as GET /api/proposals/:id/requirements
     return _build_requirements_response(proposal_id)
@@ -441,6 +457,7 @@ def generate_concepts():
     data = request.get_json(force=True)
     proposal_id = data["proposal_id"]
     proposal = Proposal.query.get_or_404(proposal_id)
+    non_gemini_mode = llm_service.is_non_gemini_enabled()
     guidance = data.get("guidance", "")
     regenerate = data.get("regenerate", False)
 
@@ -477,7 +494,13 @@ def generate_concepts():
     db.session.commit()
     record_audit(
         "concepts_generated",
-        {"proposal_id": proposal_id, "count": len(saved)},
+        {
+            "proposal_id": proposal_id,
+            "count": len(saved),
+            "completion_mode": "non_gemini" if non_gemini_mode else "gemini",
+            "regenerate": bool(regenerate),
+            "guidance": guidance or None,
+        },
         proposal_id,
         actor=_actor(),
     )
@@ -725,6 +748,7 @@ def regenerate_studio_slide(slide_id: int):
 
     proposal = Proposal.query.get(slide.proposal_id)
     req_summary = _requirements_summary(slide.proposal_id) if proposal else ""
+    non_gemini_mode = llm_service.is_non_gemini_enabled()
 
     try:
         from ..services.llm import regenerate_slide as llm_regen
@@ -738,7 +762,16 @@ def regenerate_studio_slide(slide_id: int):
         slide.content = new_content
         slide.status = "ready"
         db.session.commit()
-        record_audit("studio_slide_regenerated", {"slide_id": slide.id}, slide.proposal_id, actor=_actor())
+        record_audit(
+            "studio_slide_regenerated",
+            {
+                "slide_id": slide.id,
+                "completion_mode": "non_gemini" if non_gemini_mode else "gemini",
+                "guidance": guidance or None,
+            },
+            slide.proposal_id,
+            actor=_actor(),
+        )
         return jsonify({"slide_id": slide.id, "status": slide.status, "content": slide.content})
     except Exception as exc:
         logger.error("LLM slide regeneration failed: %s — %s", type(exc).__name__, exc)

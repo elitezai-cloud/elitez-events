@@ -1,14 +1,19 @@
 import os
+import secrets
 
 from flask import Flask, jsonify, send_from_directory
 from flask_bcrypt import Bcrypt
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFError, CSRFProtect
 
 from .models import db
-from .api.routes import api_bp
 
 migrate = Migrate()
 bcrypt = Bcrypt()
+csrf = CSRFProtect()
+limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
 UI_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..", "ui-shell")
@@ -62,6 +67,9 @@ def _run_additive_migrations(app: Flask) -> None:
 
 
 def _seed_demo_user(app: Flask) -> None:
+    if os.environ.get("ALLOW_DEMO_USER", "0") != "1":
+        return
+
     from .models import User
     try:
         with app.app_context():
@@ -82,12 +90,34 @@ def create_app() -> Flask:
     app = Flask(__name__, static_folder=UI_DIR, static_url_path="")
     app.config["SQLALCHEMY_DATABASE_URI"] = _database_uri()
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["SECRET_KEY"] = os.environ.get("APP_SECRET_KEY", "change-me")
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    env_key = os.environ.get("APP_SECRET_KEY", "").strip()
+    if not env_key:
+        # In non-development environments, fail fast instead of running with an insecure default secret.
+        is_dev = os.environ.get("FLASK_ENV", "").lower() == "development"
+        if is_dev:
+            env_key = secrets.token_hex(32)
+        else:
+            raise RuntimeError("APP_SECRET_KEY must be set in non-development environments")
+
+    app.config["SECRET_KEY"] = env_key
+    app.config["SESSION_COOKIE_SAMESITE"] = "Strict"
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "0") == "1"
+    app.config["WTF_CSRF_HEADERS"] = ["X-CSRFToken", "X-CSRF-Token"]
+    app.config["LOGIN_RATE_LIMIT"] = os.environ.get(
+        "LOGIN_RATE_LIMIT", "10 per minute;50 per hour"
+    )
+    app.config["RATELIMIT_STORAGE_URI"] = os.environ.get(
+        "RATELIMIT_STORAGE_URI", "memory://"
+    )
 
     db.init_app(app)
     migrate.init_app(app, db)
     bcrypt.init_app(app)
+    csrf.init_app(app)
+    limiter.init_app(app)
+
+    from .api.routes import api_bp
     app.register_blueprint(api_bp, url_prefix="/api")
 
     with app.app_context():
@@ -102,6 +132,14 @@ def create_app() -> Flask:
             return jsonify({"ok": True, "db": "reachable"})
         except Exception as exc:
             return jsonify({"ok": False, "db": "unreachable", "error": type(exc).__name__}), 503
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(exc: CSRFError):
+        return jsonify({"error": "csrf_failed", "reason": exc.description}), 400
+
+    @app.errorhandler(429)
+    def handle_rate_limit(exc):
+        return jsonify({"error": "rate_limited", "message": "Too many login attempts"}), 429
 
     @app.get("/")
     def index():

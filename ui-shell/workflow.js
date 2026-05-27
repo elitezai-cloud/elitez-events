@@ -23,13 +23,19 @@ function syncAdminEmptyStates(documentRef) {
 /* ── Auth state ────────────────────────────────────────────────── */
 let _currentUser = null;  // { email: string }
 let _currentProposalId = null;
+let _csrfToken = null;
 
 /* ── API fetch wrapper with loading/error state support ─────────── */
 async function apiFetch(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (_csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    headers['X-CSRFToken'] = _csrfToken;
+  }
   const res = await fetch(path, {
     credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options,
+    headers,
   });
   if (!res.ok) {
     const err = new Error(`HTTP ${res.status}`);
@@ -132,6 +138,7 @@ const AuthGate = (function () {
     try {
       const data = await apiFetch('/api/auth/me');
       _currentUser = data;
+      _csrfToken = data.csrf_token || null;
       updateUserDisplay(data.email);
       hide();
     } catch (err) {
@@ -157,6 +164,7 @@ const AuthGate = (function () {
           body: JSON.stringify({ email, password }),
         });
         _currentUser = { email: data.email };
+        _csrfToken = data.csrf_token || null;
         updateUserDisplay(data.email);
         hide();
         // Re-initialise panels now that we're authed
@@ -388,7 +396,7 @@ const SourceDrawer = (function () {
   function open(sourceRefs, triggerEl) {
     _returnFocus = triggerEl || document.activeElement;
     const drawer = document.getElementById('source-drawer');
-    const content = document.getElementById('source-drawer-content');
+    const content = document.getElementById('source-drawer-content') || document.getElementById('source-drawer-body');
     if (!drawer || !content) return;
     content.innerHTML = sourceRefs.length === 0
       ? '<p class="note">No source citations available for this field.</p>'
@@ -405,6 +413,7 @@ const SourceDrawer = (function () {
     const backdrop = document.getElementById('source-drawer-backdrop');
     if (backdrop) { backdrop.hidden = false; backdrop.removeAttribute('aria-hidden'); }
     drawer.hidden = false;
+    drawer.setAttribute('aria-hidden', 'false');
     drawer.setAttribute('aria-modal', 'true');
     const closeBtn = document.getElementById('source-drawer-close');
     if (closeBtn) closeBtn.focus();
@@ -413,7 +422,7 @@ const SourceDrawer = (function () {
 
   function close() {
     const drawer = document.getElementById('source-drawer');
-    if (drawer) { drawer.hidden = true; drawer.removeAttribute('aria-modal'); }
+    if (drawer) { drawer.hidden = true; drawer.setAttribute('aria-hidden', 'true'); drawer.removeAttribute('aria-modal'); }
     const backdrop = document.getElementById('source-drawer-backdrop');
     if (backdrop) { backdrop.hidden = true; backdrop.setAttribute('aria-hidden', 'true'); }
     releaseFocusTrap();
@@ -1798,7 +1807,12 @@ const TenderIntakePanel = (function () {
     fd.append('file', file);
     fd.append('proposal_id', String(_proposalId));
     try {
-      const resp = await fetch('/api/uploads', { method: 'POST', credentials: 'include', body: fd });
+      const resp = await fetch('/api/uploads', {
+        method: 'POST',
+        credentials: 'include',
+        headers: _csrfToken ? { 'X-CSRFToken': _csrfToken } : {},
+        body: fd,
+      });
       if (!resp.ok) throw new Error(`upload ${resp.status}`);
       const data = await resp.json();
       await _loadDocs();
