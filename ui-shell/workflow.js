@@ -1189,18 +1189,18 @@ const CostingPanel = (function () {
     }
     tbody.innerHTML = _items.map(item => `
       <tr data-item-id="${item.id}">
-        <td>${escapeHtml(item.item_name)}</td>
-        <td>
+        <td data-label="Item">${escapeHtml(item.item_name)}</td>
+        <td data-label="Qty">
           <input class="costing-qty-input" data-item="${item.id}" data-field="quantity" type="number" min="0" step="0.01"
             value="${item.quantity}" style="width:60px" aria-label="Quantity for ${escapeHtml(item.item_name)}" />
         </td>
-        <td>
+        <td data-label="Unit Cost">
           <input class="costing-cost-input" data-item="${item.id}" data-field="unit_cost" type="number" min="0" step="0.01"
             value="${item.unit_cost}" style="width:80px" aria-label="Unit cost for ${escapeHtml(item.item_name)}" />
         </td>
-        <td>${_fmt(item.line_total)}</td>
-        <td>${_statusPill(item.status)}</td>
-        <td class="table-actions">
+        <td data-label="Total">${_fmt(item.line_total)}</td>
+        <td data-label="Status">${_statusPill(item.status)}</td>
+        <td class="table-actions" data-label="Actions">
           <button class="secondary-btn" onclick="CostingPanel.duplicateItem(${item.id})" title="Duplicate">⧉</button>
           <button class="secondary-btn" onclick="CostingPanel.deleteItem(${item.id})">Remove</button>
         </td>
@@ -1624,15 +1624,15 @@ const AdminPanel = (function () {
       }
       tbody.innerHTML = items.map(item => `
         <tr data-pricing-id="${item.id}">
-          <td>${escapeHtml(item.item_name)}</td>
-          <td>${escapeHtml(item.unit || '—')}</td>
-          <td class="price-cell">
+          <td data-label="Item">${escapeHtml(item.item_name)}</td>
+          <td data-label="Unit">${escapeHtml(item.unit || '—')}</td>
+          <td class="price-cell" data-label="Current Price">
             <span class="price-display" id="price-display-${item.id}">$${parseFloat(item.current_price || 0).toLocaleString()}</span>
             <input class="price-input" id="price-input-${item.id}" type="text" value="${item.current_price || 0}"
               style="display:none;width:80px" aria-label="Edit price for ${escapeHtml(item.item_name)}" />
           </td>
-          <td>${item.updated_at ? new Date(item.updated_at).toLocaleDateString() : '—'}</td>
-          <td>
+          <td data-label="Last Updated">${item.updated_at ? new Date(item.updated_at).toLocaleDateString() : '—'}</td>
+          <td data-label="Governance">
             ${item.is_stale ? '<span class="pill pill-stale">Stale</span>' : ''}
             ${item.has_variance_warning ? '<span class="pill pill-alert">Variance</span>' : ''}
             <div class="action-row" style="margin-top:6px">
@@ -1698,14 +1698,14 @@ const AdminPanel = (function () {
       }
       tbody.innerHTML = assets.map(a => `
         <tr>
-          <td>${escapeHtml(a.asset_type)}</td>
-          <td>${escapeHtml(a.title)}</td>
-          <td>
+          <td data-label="Type">${escapeHtml(a.asset_type)}</td>
+          <td data-label="Title">${escapeHtml(a.title)}</td>
+          <td data-label="Status">
             ${a.is_stale ? '<span class="pill pill-stale">Stale</span>' : ''}
             ${a.is_duplicate_candidate ? '<span class="pill pill-alert">Duplicate?</span>' : ''}
             ${!a.is_active ? '<span class="pill pill-review">Inactive</span>' : ''}
           </td>
-          <td class="table-actions">
+          <td class="table-actions" data-label="Actions">
             ${a.is_duplicate_candidate ? `<button class="secondary-btn" onclick="AdminPanel.clearDuplicate(${a.id})">Clear Duplicate</button>` : ''}
             <button class="secondary-btn" onclick="AdminPanel.toggleAssetActive(${a.id}, ${a.is_active})">${a.is_active ? 'Deactivate' : 'Activate'}</button>
           </td>

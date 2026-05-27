@@ -2051,21 +2051,72 @@ input[type="password"]:focus, input[type="search"]:focus, textarea:focus {
     margin-inline: -6px;
     padding-inline: 6px;
     padding-bottom: 6px;
-    background:
-      linear-gradient(90deg, var(--surface) 30%, rgba(255,255,255,0)),
-      linear-gradient(270deg, var(--surface) 30%, rgba(255,255,255,0)) 100% 0,
-      radial-gradient(farthest-side at 0 50%, rgba(29,29,31,.16), rgba(29,29,31,0)),
-      radial-gradient(farthest-side at 100% 50%, rgba(29,29,31,.16), rgba(29,29,31,0)) 100% 0;
-    background-repeat: no-repeat;
-    background-size: 28px 100%, 28px 100%, 10px 100%, 10px 100%;
-    background-attachment: local, local, scroll, scroll;
+    overflow-x: visible;
   }
-  .admin-table {
-    min-width: 640px;
-  }
+  .admin-table,
+  .admin-table thead,
+  .admin-table tbody,
+  .admin-table tr,
   .admin-table th,
   .admin-table td {
+    display: block;
+    width: 100%;
+  }
+  .admin-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .admin-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
     white-space: nowrap;
+  }
+  .admin-table tbody {
+    display: grid;
+    gap: 8px;
+  }
+  .admin-table tbody tr {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    padding: 10px 12px;
+  }
+  .admin-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(96px, 34%) minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    min-height: 36px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line-soft);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .admin-table tbody td:last-child {
+    border-bottom: 0;
+  }
+  .admin-table tbody td::before {
+    content: attr(data-label);
+    color: var(--text-subtle);
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .admin-table tbody td[colspan] {
+    display: block;
+    text-align: center;
+  }
+  .admin-table tbody td[colspan]::before {
+    content: none;
+  }
+  .admin-table tbody .table-actions,
+  .admin-table tbody td .action-row {
+    justify-content: flex-start;
   }
   .admin-table .secondary-btn,
   .table-actions .secondary-btn {
@@ -2114,6 +2165,19 @@ input[type="password"]:focus, input[type="search"]:focus, textarea:focus {
     justify-content: center;
     white-space: normal;
     text-align: center;
+  }
+  .admin-headline-row .primary-btn,
+  .admin-headline-row .secondary-btn {
+    flex: 0 1 auto;
+    width: 100%;
+    min-height: 44px;
+  }
+  .view-all-link,
+  .req-source-chip,
+  .source-chip {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
   }
   .concepts-grid { grid-template-columns: 1fr; }
   .concept-cards-layout.has-approval { grid-template-columns: 1fr; }
