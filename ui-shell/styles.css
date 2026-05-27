@@ -796,11 +796,13 @@ input, textarea, select { font: inherit; }
   border-radius: var(--radius);
   box-shadow: var(--shadow-glass);
   padding: 18px;
+  min-width: 0;
 }
 .panel h3 { margin: 0 0 12px; font-size: .92rem; font-weight: 700; color: var(--text); }
 .panel h4 { margin: 0 0 8px; font-size: .875rem; font-weight: 700; color: var(--text); }
 .panel--soft { background: var(--surface-2); }
 .panel-grid { display: grid; gap: 14px; margin-top: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.panel-grid > * { min-width: 0; }
 
 /* ── Stage topbar (non-dashboard stages) ───────────────────────── */
 .stage-topbar {
@@ -1031,6 +1033,7 @@ input[type="password"]:focus, input[type="search"]:focus, textarea:focus {
 .responsive-table-wrap {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   border-radius: var(--radius-sm);
@@ -2091,10 +2094,23 @@ input[type="password"]:focus, input[type="search"]:focus, textarea:focus {
   }
   .action-row {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .stage-content .action-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+    align-items: stretch;
+  }
+  .stage-content .panel > div[style*="display:flex"] {
+    flex-direction: column;
+    align-items: stretch !important;
   }
   .action-row .secondary-btn,
   .action-row .primary-btn,
   .action-row .button-primary {
+    width: 100%;
+    min-width: 0;
     justify-content: center;
     white-space: normal;
     text-align: center;
