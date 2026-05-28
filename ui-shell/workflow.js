@@ -135,6 +135,8 @@ const AuthGate = (function () {
   }
 
   async function init() {
+    // Show overlay synchronously — prevents dashboard flash while /api/auth/me is in-flight
+    show();
     try {
       const data = await apiFetch('/api/auth/me');
       _currentUser = data;
@@ -143,9 +145,12 @@ const AuthGate = (function () {
       hide();
     } catch (err) {
       if (err.status === 401) {
-        show();
         _wireLoginForm();
+        // Reject so DOMContentLoaded .then() skips dashboard init
+        throw err;
       }
+      // Non-401 error (network outage, 5xx): hide overlay so app is not permanently blocked
+      hide();
     }
   }
 
