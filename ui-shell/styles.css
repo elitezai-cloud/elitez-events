@@ -1703,7 +1703,20 @@ input[type="password"]:focus, input[type="search"]:focus, textarea:focus {
 .concept-cards-layout { display: grid; grid-template-columns: 1fr; gap: 16px; }
 .concept-cards-layout.has-approval { grid-template-columns: 1fr 300px; }
 
-.concept-grid-inner { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.concept-grid-inner { display: grid; grid-template-columns: 1fr; gap: 14px; }
+
+@media (min-width: 768px) {
+  .concept-grid-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .concept-grid-inner { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .concept-cards-layout.has-approval { grid-template-columns: 1fr; }
+  .concept-approval-panel { position: static; }
+}
 
 .concept-card-wrap { position: relative; }
 .concept-card-wrap.is-selected .concept-card-inner { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-mid); }
@@ -1924,6 +1937,7 @@ input[type="password"]:focus, input[type="search"]:focus, textarea:focus {
   :root { --nav-h: 56px; }
 
   body { overflow-x: hidden; }
+  .app-body { flex-direction: column; }
   .top-nav {
     padding: 0 12px;
     gap: 10px;
