@@ -1024,6 +1024,21 @@ input[type="password"]:focus, input[type="search"]:focus, textarea:focus {
   border-color: #fed7aa;
   color: #c2410c;
 }
+.detected-summary-list li:not(.warn) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 16px;
+  padding-inline-end: 0;
+}
+.detected-summary-list .summary-label {
+  min-width: 0;
+}
+.detected-summary-list .summary-value {
+  justify-self: end;
+  min-width: 0;
+  text-align: right;
+  max-width: 100%;
+}
 
 /* ── Action rows ───────────────────────────────────────────────── */
 .action-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
