@@ -684,18 +684,14 @@
               </div>
             </article>
 
-            <article class="panel panel--soft" style="grid-column:1/-1">
-              <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-                <div>
-                  <p style="margin:0;font-size:.86rem"><strong>Deck render status:</strong> Sync in progress</p>
-                  <p class="note" style="margin-top:4px">Image optimization retry 1/3; fallback template available.</p>
-                  <p style="margin:6px 0 0;font-size:.82rem;color:#c2410c">Render failure on slide 04: missing budget input.</p>
-                </div>
-                <div class="action-row" style="margin-top:0;flex-shrink:0">
-                  <button class="secondary-btn">Retry Render</button>
-                  <button class="secondary-btn">Check Render Queue</button>
-                </div>
+            <article class="panel panel--soft deck-render-card" style="grid-column:1/-1">
+              <p style="margin:0;font-size:.86rem"><strong>Deck render status:</strong> Sync in progress</p>
+              <p class="note" style="margin-top:4px">Image optimization retry 1/3; fallback template available.</p>
+              <div class="action-row deck-render-actions">
+                <button class="secondary-btn">Retry Render</button>
+                <button class="secondary-btn">Check Render Queue</button>
               </div>
+              <p class="deck-render-failure">Render failure on slide 04: missing budget input.</p>
             </article>
           </div>
         </section>
