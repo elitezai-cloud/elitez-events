@@ -109,11 +109,15 @@ const AuthGate = (function () {
   function show() {
     const overlay = document.getElementById('auth-overlay');
     if (overlay) overlay.hidden = false;
+    const workspace = document.querySelector('main.workspace');
+    if (workspace) workspace.hidden = true;
   }
 
   function hide() {
     const overlay = document.getElementById('auth-overlay');
     if (overlay) overlay.hidden = true;
+    const workspace = document.querySelector('main.workspace');
+    if (workspace) workspace.hidden = false;
   }
 
   function updateUserDisplay(email) {
